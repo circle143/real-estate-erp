@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 )
 
 func handleReq(w http.ResponseWriter, r *http.Request) {
@@ -46,12 +47,17 @@ func handleOrgUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	http.HandleFunc("/", handleReq)
 	http.HandleFunc("/admin", handleAdmin)
 	http.HandleFunc("/org/{id}/admin", handleOrgAdmin)
 	http.HandleFunc("/org/{id}/user", handleOrgUser)
 
-	err := http.ListenAndServe(":3333", nil)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatalf("Error starting server: %v", err)
 		return
