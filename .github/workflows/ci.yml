@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: CI Pipeline
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Login dockerhub
-      env: 
+      env:
         DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
         DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       run: docker -login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -23,4 +23,3 @@ jobs:
       run: docker build -t real-estate-erp .
     - name: Push image to docker hub
       run: docker push circle08/real-estate-erp:latest
-
