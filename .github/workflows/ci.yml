@@ -20,6 +20,6 @@ jobs:
         DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
     - name: Build the Docker image
-      run: docker build -t real-estate-erp:latest .
+      run: docker build -t circle08/real-estate-erp .
     - name: Push image to docker hub
       run: docker push circle08/real-estate-erp:latest
