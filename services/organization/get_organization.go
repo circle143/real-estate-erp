@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// hGetAllOrganizations is getAllOrganizations handler
 type hGetAllOrganizations struct{}
 
 func (gao *hGetAllOrganizations) execute(db *gorm.DB, cursor string) (*custom.PaginatedData, error) {
@@ -48,6 +49,41 @@ func (os *organizationService) getAllOrganizations(w http.ResponseWriter, r *htt
 	payload.EncodeJSON(w, http.StatusOK, response)
 }
 
-func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r *http.Request) {
+type hGetAllOrganizationUsers struct{}
 
+func (gou *hGetAllOrganizationUsers) execute(db *gorm.DB, orgId, cursor string) (*custom.PaginatedData, error) {
+	var userData []models.User
+	query := db.Where("org_id = ?", orgId).Order("created_at DESC").Limit(custom.LIMIT + 1)
+	if strings.TrimSpace(cursor) != "" {
+		decodedCursor, err := common.DecodeCursor(cursor)
+		if err == nil {
+			query = query.Where("created_at < ?", decodedCursor)
+		}
+
+	}
+
+	tx := query.Find(&userData)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return common.CreatePaginatedResponse(&userData), nil
+}
+
+func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	cursor := r.URL.Query().Get("cursor")
+
+	users := hGetAllOrganizationUsers{}
+	res, err := users.execute(os.db, orgId, cursor)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
 }
