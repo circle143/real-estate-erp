@@ -12,8 +12,8 @@ func encodeCursor(t time.Time) string {
 	return base64.URLEncoding.EncodeToString([]byte(t.Format(time.RFC3339Nano)))
 }
 
-// decodeCursor decodes the given cursor to time.Time
-func decodeCursor(cursor string) (time.Time, error) {
+// DecodeCursor decodes the given cursor to time.Time
+func DecodeCursor(cursor string) (time.Time, error) {
 	decodedBytes, err := base64.URLEncoding.DecodeString(cursor)
 	if err != nil {
 		return time.Time{}, &custom.RequestError{

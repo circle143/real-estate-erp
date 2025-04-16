@@ -1,9 +1,51 @@
 package organization
 
-import "net/http"
+import (
+	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/utils/common"
+	"circledigital.in/real-state-erp/utils/custom"
+	"circledigital.in/real-state-erp/utils/payload"
+	"gorm.io/gorm"
+	"net/http"
+	"strings"
+)
+
+type hGetAllOrganizations struct{}
+
+func (gao *hGetAllOrganizations) execute(db *gorm.DB, cursor string) (*custom.PaginatedData, error) {
+	var orgData []models.Organization
+	query := db.Order("created_at DESC").Limit(custom.LIMIT + 1)
+	if strings.TrimSpace(cursor) != "" {
+		decodedCursor, err := common.DecodeCursor(cursor)
+		if err == nil {
+			query = query.Where("created_at < ?", decodedCursor)
+		}
+
+	}
+
+	tx := query.Find(&orgData)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return common.CreatePaginatedResponse(&orgData), nil
+}
 
 func (os *organizationService) getAllOrganizations(w http.ResponseWriter, r *http.Request) {
+	cursor := r.URL.Query().Get("cursor")
 
+	organizations := hGetAllOrganizations{}
+	res, err := organizations.execute(os.db, cursor)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
 }
 
 func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r *http.Request) {
