@@ -1,0 +1,10 @@
+{
+  "error": false,
+  "data": {
+    "pageInfo": {
+      "nextPage": false,
+      "cursor": ""
+    },
+    "items": []
+  }
+}

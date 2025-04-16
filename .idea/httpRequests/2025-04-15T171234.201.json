@@ -1,0 +1,13 @@
+{
+  "error": false,
+  "message": "Successfully created new organization.",
+  "data": {
+    "id": "d824f11b-f1c5-44cb-a742-2d6b9d142109",
+    "name": "circle",
+    "createdAt": "2025-04-15T17:12:33.3251077+05:30",
+    "updatedAt": "2025-04-15T17:12:33.3251077+05:30",
+    "status": "active",
+    "logo": "",
+    "gst": ""
+  }
+}
