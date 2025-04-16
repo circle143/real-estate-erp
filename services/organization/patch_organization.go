@@ -4,6 +4,7 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -37,7 +38,7 @@ func (uos *hUpdateOrganizationStatus) execute(db *gorm.DB, orgId string) error {
 	org := models.Organization{
 		Id: uuid.MustParse(orgId),
 	}
-	return db.Model(&org).Update("status", uos.Status).Error
+	return db.Model(&org).Update("status", custom.OrganizationStatus(uos.Status)).Error
 }
 
 func (os *organizationService) updateOrganizationStatus(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +131,73 @@ func (os *organizationService) updateOrganizationDetails(w http.ResponseWriter, 
 	payload.EncodeJSON(w, http.StatusOK, response)
 }
 
-func (os *organizationService) updateOrganizationUserRole(w http.ResponseWriter, r *http.Request) {
+type hUpdateOrganizationUserRole struct {
+	Role string
+}
 
+func (uou *hUpdateOrganizationUserRole) validate() error {
+	role := uou.Role
+	if role == string(custom.ORGADMIN) || role == string(custom.ORGUSER) {
+		return nil
+	}
+
+	return &custom.RequestError{
+		Status:  http.StatusBadRequest,
+		Message: "Invalid user role.",
+	}
+}
+
+func (uou *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
+	err := uou.validate()
+	if err != nil {
+		return err
+	}
+
+	return db.Transaction(func(tx *gorm.DB) error {
+		userModel := models.User{
+			Email: user,
+		}
+		// update user
+		result := tx.Model(&userModel).Where("org_id = ?", orgId).Update("role", custom.UserRole(uou.Role))
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "user not found",
+			}
+		}
+
+		// update cognito
+		err := removeUserFromGroup(cognito, user, userPool)
+		if err != nil {
+			return err
+		}
+
+		// add user to a new group
+		err = addUserToGroup(cognito, user, uou.Role, userPool)
+		return err
+	})
+}
+
+func (os *organizationService) updateOrganizationUserRole(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	user := chi.URLParam(r, "userEmail")
+	reqBody := payload.ValidateAndDecodeRequest[hUpdateOrganizationUserRole](w, r)
+	if reqBody == nil {
+		return
+	}
+
+	err := reqBody.execute(os.db, os.cognito, user, orgId, os.userPool)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Successfully updated user role."
+
+	payload.EncodeJSON(w, http.StatusOK, response)
 }

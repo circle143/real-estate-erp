@@ -16,8 +16,8 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 	mux.Group(func(router chi.Router) {
 		router.Post("/organization/user", os.addUserToOrganization)
 		router.Patch("/organization/details", os.updateOrganizationDetails)
-		router.Patch("/organization/user", os.updateOrganizationUserRole)
-		router.Get("/organization/user", os.getAllOrganizationUsers)
+		router.Patch("/organization/user/{userEmail}", os.updateOrganizationUserRole)
+		router.Get("/organization/users", os.getAllOrganizationUsers)
 		router.Delete("/organization/user/{userEmail}", os.removeUserFromOrganization)
 	})
 
