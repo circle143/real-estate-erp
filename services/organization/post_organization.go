@@ -4,10 +4,8 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
-	"context"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -27,14 +25,10 @@ func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprov
 	// perform db transaction for atomicity
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// check if user exists or not
-		_, err := cognito.AdminGetUser(context.TODO(), &cognitoidentityprovider.AdminGetUserInput{
-			UserPoolId: aws.String(userPool),
-			Username:   aws.String(co.Email),
-		})
-		if err == nil {
+		if userExists(cognito, co.Email, userPool) {
 			return &custom.RequestError{
 				Status:  http.StatusBadRequest,
-				Message: "User already part of an organization.",
+				Message: "User already exists.",
 			}
 		}
 
@@ -56,26 +50,13 @@ func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprov
 		}
 
 		// create user credentials
-		_, err = cognito.AdminCreateUser(context.TODO(), &cognitoidentityprovider.AdminCreateUserInput{
-			UserPoolId: aws.String(userPool),
-			Username:   aws.String(co.Email),
-			UserAttributes: []types.AttributeType{
-				{
-					Name:  aws.String(custom.OrgIdCustomAttribute),
-					Value: aws.String(organization.Id.String()),
-				},
-			},
-		})
+		err := createUserInCognito(cognito, co.Email, organization.Id.String(), userPool)
 		if err != nil {
 			return err
 		}
 
 		// add user to a group
-		_, err = cognito.AdminAddUserToGroup(context.TODO(), &cognitoidentityprovider.AdminAddUserToGroupInput{
-			UserPoolId: aws.String(userPool),
-			GroupName:  aws.String(string(custom.ORGADMIN)),
-			Username:   aws.String(co.Email),
-		})
+		err = addUserToGroup(cognito, co.Email, string(custom.ORGADMIN), userPool)
 		if err != nil {
 			// clean up from cognito
 			go func() {
@@ -115,6 +96,71 @@ func (os *organizationService) createOrganization(w http.ResponseWriter, r *http
 	payload.EncodeJSON(w, http.StatusCreated, response)
 }
 
-func (os *organizationService) addUserToOrganization(w http.ResponseWriter, r *http.Request) {
+// hAddUserToOrganization is addUserToOrganization handler
+type hAddUserToOrganization struct {
+	Email string `validate:"required,email"`
+}
 
+func (au *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, orgId, userPool string) error {
+	return db.Transaction(func(tx *gorm.DB) error {
+		// check if user exists or not
+		if userExists(cognito, au.Email, userPool) {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "User already exists.",
+			}
+		}
+
+		// create user
+		result := db.Create(&models.User{
+			OrgId: uuid.MustParse(orgId),
+			Name:  au.Email,
+			Email: au.Email,
+			Role:  custom.ORGUSER,
+		})
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// create user credentials
+		err := createUserInCognito(cognito, au.Email, orgId, userPool)
+		if err != nil {
+			return err
+		}
+
+		// add user to a group
+		err = addUserToGroup(cognito, au.Email, string(custom.ORGUSER), userPool)
+		if err != nil {
+			// clean up from cognito
+			go func() {
+				err := deleteUserFromCognito(cognito, au.Email, userPool)
+				if err != nil {
+					return
+				}
+			}()
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (os *organizationService) addUserToOrganization(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	reqBody := payload.ValidateAndDecodeRequest[hAddUserToOrganization](w, r)
+	if reqBody == nil {
+		return
+	}
+
+	err := reqBody.execute(os.db, os.cognito, orgId, os.userPool)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Successfully added user to organization."
+
+	payload.EncodeJSON(w, http.StatusCreated, response)
 }
