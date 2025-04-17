@@ -17,7 +17,7 @@ var unauthorizedError = &custom.RequestError{
 type AuthorizationMiddleware struct{}
 
 // AdminAuthorization protects admin routes
-func (am *AuthenticationMiddleware) AdminAuthorization(next http.Handler) http.Handler {
+func (am *AuthorizationMiddleware) AdminAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		userRole := r.Context().Value(custom.UserRoleKey).(custom.UserRole)
 		if userRole != custom.CIRCLEADMIN {
