@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"gorm.io/gorm"
+	"os"
 )
 
 type organizationService struct {
@@ -17,7 +18,8 @@ type organizationService struct {
 }
 
 // CreateOrganizationService is an abstract factory to create organization service
-func CreateOrganizationService(dbConn *gorm.DB, cognitoClient *cognitoidentityprovider.Client, userPoolId string) init.IService {
+func CreateOrganizationService(dbConn *gorm.DB, cognitoClient *cognitoidentityprovider.Client) init.IService {
+	userPoolId := os.Getenv("USER_POOL_ID")
 	return &organizationService{
 		db:       dbConn,
 		cognito:  cognitoClient,
