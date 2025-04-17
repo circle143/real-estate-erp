@@ -1,7 +1,7 @@
 package organization
 
 import (
-	"circledigital.in/real-state-erp/init"
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,7 +18,7 @@ type organizationService struct {
 }
 
 // CreateOrganizationService is an abstract factory to create organization service
-func CreateOrganizationService(app init.IApp) init.IService {
+func CreateOrganizationService(app common.IApp) common.IService {
 	userPoolId := os.Getenv("USER_POOL_ID")
 	return &organizationService{
 		db:       app.GetDBClient(),

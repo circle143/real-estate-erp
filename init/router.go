@@ -2,6 +2,7 @@ package init
 
 import (
 	"circledigital.in/real-state-erp/services/organization"
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	appMiddleware "circledigital.in/real-state-erp/utils/middleware"
 	"circledigital.in/real-state-erp/utils/payload"
@@ -11,7 +12,7 @@ import (
 	"net/http"
 )
 
-type serviceFactory func(app IApp) IService
+type serviceFactory func(app common.IApp) common.IService
 
 var services = []serviceFactory{
 	organization.CreateOrganizationService,

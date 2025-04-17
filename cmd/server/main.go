@@ -1,7 +1,7 @@
 package main
 
 import (
-	"circledigital.in/real-state-erp/init"
+	appInit "circledigital.in/real-state-erp/init"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
@@ -20,7 +20,7 @@ func main() {
 		port = "8080"
 	}
 
-	app := init.GetApplication()
+	app := appInit.GetApplication()
 
 	log.Printf("Server is listening on PORT: %s", port)
 	err = http.ListenAndServe(":"+port, app.GetRouter())

@@ -1,25 +1,13 @@
 package init
 
 import (
+	"circledigital.in/real-state-erp/utils/common"
 	"github.com/MicahParks/keyfunc/v3"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 )
 
 // package init handles all the application initialization
-
-// IService is implemented by all services and return routes exposed by the service
-type IService interface {
-	GetRoutes() *chi.Mux
-}
-
-// IApp is an application interface with all the configurations
-type IApp interface {
-	GetRouter() *chi.Mux
-
-	GetDBClient() *gorm.DB
-	GetAWSConfig() *awsConfig
-}
 
 // app is implementation of App interface
 type app struct {
@@ -37,7 +25,7 @@ func (a *app) GetDBClient() *gorm.DB {
 	return a.dbClient
 }
 
-func (a *app) GetAWSConfig() *awsConfig {
+func (a *app) GetAWSConfig() common.IAWSConfig {
 	return a.aws
 }
 
@@ -51,7 +39,7 @@ func (a *app) initApplication() {
 	a.mux = a.createRouter()
 }
 
-func GetApplication() IApp {
+func GetApplication() common.IApp {
 	appObj := &app{}
 	appObj.initApplication()
 
