@@ -18,11 +18,11 @@ type organizationService struct {
 }
 
 // CreateOrganizationService is an abstract factory to create organization service
-func CreateOrganizationService(dbConn *gorm.DB, cognitoClient *cognitoidentityprovider.Client) init.IService {
+func CreateOrganizationService(app init.IApp) init.IService {
 	userPoolId := os.Getenv("USER_POOL_ID")
 	return &organizationService{
-		db:       dbConn,
-		cognito:  cognitoClient,
+		db:       app.GetDBClient(),
+		cognito:  app.GetAWSConfig().GetCognitoClient(),
 		userPool: userPoolId,
 	}
 }

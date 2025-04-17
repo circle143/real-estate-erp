@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func migrate(db *gorm.DB) {
+func Migrate(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&models.Organization{},
 		&models.User{},
