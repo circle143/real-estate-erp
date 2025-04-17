@@ -5,6 +5,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+func (os *organizationService) GetBasePath() string {
+	return "/organization"
+}
+
 func (os *organizationService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
@@ -13,9 +17,9 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 	mux.Group(func(router chi.Router) {
 		router.Use(authorizationMiddleware.AdminAuthorization)
 
-		router.Post("/organization", os.createOrganization)
-		router.Patch("/organization/{orgId}/status", os.updateOrganizationStatus)
-		router.Get("/organizations", os.getAllOrganizations)
+		router.Post("/", os.createOrganization)
+		router.Patch("/{orgId}/status", os.updateOrganizationStatus)
+		router.Get("/", os.getAllOrganizations)
 	})
 
 	// organization admin routes
@@ -23,11 +27,11 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/organization/user", os.addUserToOrganization)
-		router.Patch("/organization/details", os.updateOrganizationDetails)
-		router.Patch("/organization/user/{userEmail}", os.updateOrganizationUserRole)
-		router.Get("/organization/users", os.getAllOrganizationUsers)
-		router.Delete("/organization/user/{userEmail}", os.removeUserFromOrganization)
+		router.Post("/user", os.addUserToOrganization)
+		router.Patch("/details", os.updateOrganizationDetails)
+		router.Patch("/user/{userEmail}", os.updateOrganizationUserRole)
+		router.Get("/users", os.getAllOrganizationUsers)
+		router.Delete("/user/{userEmail}", os.removeUserFromOrganization)
 	})
 
 	return mux

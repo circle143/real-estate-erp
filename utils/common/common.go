@@ -11,6 +11,7 @@ import (
 // IService is implemented by all services and return routes exposed by the service
 type IService interface {
 	GetRoutes() *chi.Mux
+	GetBasePath() string
 }
 
 type IAWSConfig interface {

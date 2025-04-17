@@ -7,7 +7,7 @@ import (
 
 // Society model
 type Society struct {
-	ReraNumber   string        `gorm:"primaryKey" json:"reraNumber"`
+	ReraNumber   string        `gorm:"primaryKey;constraint:OnUpdate:CASCADE" json:"reraNumber"`
 	OrgId        uuid.UUID     `gorm:"primaryKey" json:"orgId"`
 	Organization *Organization `gorm:"foreignKey:OrgId;not null" json:"organization,omitempty"`
 	Name         string        `gorm:"not null" json:"name"`

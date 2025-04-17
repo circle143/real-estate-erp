@@ -17,6 +17,9 @@ func (a *app) createDBClient() *gorm.DB {
 	}
 
 	log.Println("DB connected")
-	migration.Migrate(db)
+	if os.Getenv("ENV") != "development" {
+		migration.Migrate(db)
+	}
+
 	return db
 }

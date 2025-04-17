@@ -2,6 +2,7 @@ package init
 
 import (
 	"circledigital.in/real-state-erp/services/organization"
+	"circledigital.in/real-state-erp/services/society"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	appMiddleware "circledigital.in/real-state-erp/utils/middleware"
@@ -16,6 +17,7 @@ type serviceFactory func(app common.IApp) common.IService
 
 var services = []serviceFactory{
 	organization.CreateOrganizationService,
+	society.CreateSocietyService,
 }
 
 // handle400 returns custom responses for not found routes and not allowed methods
@@ -66,7 +68,7 @@ func (a *app) createRouter() *chi.Mux {
 	// add services routes
 	for _, factory := range services {
 		service := factory(a)
-		mux.Mount("/", service.GetRoutes())
+		mux.Mount(service.GetBasePath(), service.GetRoutes())
 	}
 
 	return mux
