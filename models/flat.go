@@ -18,6 +18,7 @@ type Flat struct {
 	SoldBy      custom.Seller `gorm:"not null" json:"soldBy"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updatedAt"`
+	Owners      []Customer    `gorm:"foreignKey:FlatId" json:"owners,omitempty"`
 }
 
 func (u Flat) GetCreatedAt() time.Time {
