@@ -25,30 +25,34 @@ func (ut *hUpdateTower) validate() error {
 	return nil
 }
 
-func (ut *hUpdateTower) execute(db *gorm.DB, tower string) error {
+func (ut *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error {
 	err := ut.validate()
 	if err != nil {
 		return err
 	}
 
-	towerModel := models.Tower{
-		Id: uuid.MustParse(tower),
-	}
-
-	return db.Model(&towerModel).Updates(models.Tower{
-		FloorCount:        ut.FloorCount,
-		PerFloorFlatCount: ut.PerFloorFlatCount,
-	}).Error
+	return db.
+		Model(&models.Tower{
+			Id: uuid.MustParse(tower),
+		}).
+		Where("org_id = ? and society_id = ?", orgId, society).
+		Updates(models.Tower{
+			FloorCount:        ut.FloorCount,
+			PerFloorFlatCount: ut.PerFloorFlatCount,
+		}).Error
 }
 
 func (ts *towerService) updateTower(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	towerId := chi.URLParam(r, "tower")
+	societyRera := chi.URLParam(r, "society")
+
 	reqBody := payload.ValidateAndDecodeRequest[hUpdateTower](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	err := reqBody.execute(ts.db, towerId)
+	err := reqBody.execute(ts.db, orgId, societyRera, towerId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
