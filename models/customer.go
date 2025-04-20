@@ -9,9 +9,8 @@ import (
 
 // Customer model
 type Customer struct {
-	Id     uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid();constraint:OnUpdate:CASCADE" json:"id"`
-	FlatId uuid.UUID `gorm:"not null;index" json:"flatId"`
-	//Flat             *Flat                `gorm:"foreignKey:FlatId;not null" json:"flat,omitempty"`
+	Id               uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid();constraint:OnUpdate:CASCADE" json:"id"`
+	FlatId           uuid.UUID            `gorm:"not null;index" json:"flatId"`
 	Level            int                  `gorm:"not null" json:"level"`
 	Salutation       custom.Salutation    `gorm:"not null" json:"salutation"`
 	FirstName        string               `gorm:"not null" json:"firstName"`

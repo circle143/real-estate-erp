@@ -1,6 +1,10 @@
 package common
 
-import "github.com/google/uuid"
+import (
+	"circledigital.in/real-state-erp/utils/custom"
+	"github.com/google/uuid"
+	"net/http"
+)
 
 type SocietyInfo struct {
 	SocietyRera string
@@ -10,4 +14,20 @@ type SocietyInfo struct {
 // ISocietyInfo interface is implemented by tower, flat-type and flats
 type ISocietyInfo interface {
 	GetSocietyInfo() (*SocietyInfo, error)
+}
+
+// IsSameSociety is a helper method to check if society details match
+func IsSameSociety(societyInfoService ISocietyInfo, orgId, societyRera string) error {
+	societyInfo, err := societyInfoService.GetSocietyInfo()
+	if err != nil {
+		return err
+	}
+
+	if societyInfo.SocietyRera != societyRera || societyInfo.OrgId.String() != orgId {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Society mismatch.",
+		}
+	}
+	return nil
 }

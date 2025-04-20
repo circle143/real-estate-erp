@@ -1,6 +1,7 @@
 package init
 
 import (
+	"circledigital.in/real-state-erp/services/flat"
 	flatType "circledigital.in/real-state-erp/services/flat-type"
 	"circledigital.in/real-state-erp/services/organization"
 	"circledigital.in/real-state-erp/services/society"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 )
 
+// serviceFactory defines type for getting a service
 type serviceFactory func(app common.IApp) common.IService
 
 var services = []serviceFactory{
@@ -22,6 +24,7 @@ var services = []serviceFactory{
 	society.CreateSocietyService,
 	flatType.CreateFlatTypeService,
 	tower.CreateTowerService,
+	flat.CreateFlatService,
 }
 
 // handle400 returns custom responses for not found routes and not allowed methods
