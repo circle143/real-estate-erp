@@ -17,10 +17,9 @@ type hCreateTower struct {
 
 func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tower, error) {
 	tower := models.Tower{
-		OrgId:             uuid.MustParse(orgId),
-		SocietyId:         society,
-		FloorCount:        ct.FloorCount,
-		PerFloorFlatCount: ct.PerFloorFlatCount,
+		OrgId:      uuid.MustParse(orgId),
+		SocietyId:  society,
+		FloorCount: ct.FloorCount,
 	}
 
 	result := db.Create(&tower)
