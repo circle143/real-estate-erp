@@ -11,34 +11,17 @@ import (
 )
 
 type hUpdateTower struct {
-	FloorCount        int
-	PerFloorFlatCount int
-}
-
-func (ut *hUpdateTower) validate() error {
-	if ut.FloorCount == 0 && ut.PerFloorFlatCount == 0 {
-		return &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid field values to update.",
-		}
-	}
-	return nil
+	FloorCount int `validate:"required"`
 }
 
 func (ut *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error {
-	err := ut.validate()
-	if err != nil {
-		return err
-	}
-
 	return db.
 		Model(&models.Tower{
 			Id: uuid.MustParse(tower),
 		}).
 		Where("org_id = ? and society_id = ?", orgId, society).
 		Updates(models.Tower{
-			FloorCount:        ut.FloorCount,
-			PerFloorFlatCount: ut.PerFloorFlatCount,
+			FloorCount: ut.FloorCount,
 		}).Error
 }
 

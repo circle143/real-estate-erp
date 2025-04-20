@@ -11,8 +11,7 @@ import (
 )
 
 type hCreateTower struct {
-	FloorCount        int `validate:"required"`
-	PerFloorFlatCount int `validate:"required"`
+	FloorCount int `validate:"required"`
 }
 
 func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tower, error) {
