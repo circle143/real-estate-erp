@@ -39,7 +39,7 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Get("/self", os.getAllOrganizationUsers)
+		router.Get("/self", os.getCurrentUserOrganization)
 	})
 
 	return mux
