@@ -5,6 +5,7 @@ import (
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
@@ -76,6 +77,34 @@ func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r 
 
 	users := hGetAllOrganizationUsers{}
 	res, err := users.execute(os.db, orgId, cursor)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
+
+type hGetCurrentUserOrganization struct{}
+
+func (gou *hGetCurrentUserOrganization) execute(db *gorm.DB, orgId string) (*models.Organization, error) {
+	organization := models.Organization{
+		Id: uuid.MustParse(orgId),
+	}
+
+	err := db.First(&organization).Error
+	return &organization, err
+}
+
+func (os *organizationService) getCurrentUserOrganization(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+
+	org := hGetCurrentUserOrganization{}
+	res, err := org.execute(os.db, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

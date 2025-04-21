@@ -3,7 +3,6 @@ package models
 import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"time"
 )
 
@@ -20,8 +19,8 @@ type Customer struct {
 	Photo            string               `gorm:"not null" json:"photo"`
 	MaritalStatus    custom.MaritalStatus `gorm:"not null" json:"maritalStatus"`
 	Nationality      custom.Nationality   `gorm:"not null" json:"nationality"`
-	Email            pq.StringArray       `gorm:"type:text[];not null" json:"email"`
-	PhoneNumber      pq.StringArray       `gorm:"type:text[];not null" json:"phoneNumber"`
+	Email            string               `gorm:"not null" json:"email"`
+	PhoneNumber      string               `gorm:"not null" json:"phoneNumber"`
 	MiddleName       string               `json:"middleName"`
 	NumberOfChildren int                  `json:"numberOfChildren"`
 	AnniversaryDate  time.Time            `json:"anniversaryDate"`

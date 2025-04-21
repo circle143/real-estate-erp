@@ -34,5 +34,13 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 		router.Delete("/user/{userEmail}", os.removeUserFromOrganization)
 	})
 
+	// organization user and admin route
+	mux.Group(func(router chi.Router) {
+		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
+		router.Use(authorizationMiddleware.OrganizationAuthorization)
+
+		router.Get("/self", os.getAllOrganizationUsers)
+	})
+
 	return mux
 }
