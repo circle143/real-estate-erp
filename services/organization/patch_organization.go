@@ -19,15 +19,15 @@ type hUpdateOrganizationStatus struct {
 }
 
 func (uos *hUpdateOrganizationStatus) validate() error {
-	status := uos.Status
-	if status == string(custom.ACTIVE) || status == string(custom.INACTIVE) || status == string(custom.ARCHIVE) {
-		return nil
+	status := custom.OrganizationStatus(uos.Status)
+	if status.IsValid() {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid status for organization",
+		}
 	}
 
-	return &custom.RequestError{
-		Status:  http.StatusBadRequest,
-		Message: "Invalid status for organization",
-	}
+	return nil
 }
 
 func (uos *hUpdateOrganizationStatus) execute(db *gorm.DB, orgId string) error {
@@ -136,15 +136,15 @@ type hUpdateOrganizationUserRole struct {
 }
 
 func (uou *hUpdateOrganizationUserRole) validate() error {
-	role := uou.Role
-	if role == string(custom.ORGADMIN) || role == string(custom.ORGUSER) {
-		return nil
+	role := custom.UserRole(uou.Role)
+	if !role.IsValid() {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid user role.",
+		}
 	}
 
-	return &custom.RequestError{
-		Status:  http.StatusBadRequest,
-		Message: "Invalid user role.",
-	}
+	return nil
 }
 
 func (uou *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
