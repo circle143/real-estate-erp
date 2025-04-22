@@ -55,6 +55,14 @@ func createUserInCognito(cognito *cognitoidentityprovider.Client, username, orgI
 				Name:  aws.String(custom.OrgIdCustomAttribute),
 				Value: aws.String(orgId),
 			},
+			{
+				Name:  aws.String("name"), // Standard attribute for full name
+				Value: aws.String(username),
+			},
+			{
+				Name:  aws.String("picture"), // Standard attribute for full name
+				Value: aws.String(""),
+			},
 		},
 	})
 	return err
