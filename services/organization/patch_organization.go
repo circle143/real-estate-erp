@@ -20,7 +20,7 @@ type hUpdateOrganizationStatus struct {
 
 func (uos *hUpdateOrganizationStatus) validate() error {
 	status := custom.OrganizationStatus(uos.Status)
-	if status.IsValid() {
+	if !status.IsValid() {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid status for organization",
