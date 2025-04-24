@@ -18,7 +18,7 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("towers.society_id = ? AND towers.org_id = ?", societyRera, orgId).
-		Preload("Customers").
+		Preload("Owners").
 		Order("flats.id").
 		Limit(custom.LIMIT + 1)
 
@@ -73,7 +73,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("flat.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
-		Preload("Customers").
+		Preload("Owners").
 		Order("flats.id").
 		Limit(custom.LIMIT + 1)
 
