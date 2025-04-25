@@ -11,7 +11,8 @@ import (
 )
 
 type hCreateTower struct {
-	FloorCount int `validate:"required"`
+	FloorCount int    `validate:"required"`
+	Name       string `validate:"required"`
 }
 
 func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tower, error) {
@@ -19,6 +20,7 @@ func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tow
 		OrgId:      uuid.MustParse(orgId),
 		SocietyId:  society,
 		FloorCount: ct.FloorCount,
+		Name:       ct.Name,
 	}
 
 	result := db.Create(&tower)

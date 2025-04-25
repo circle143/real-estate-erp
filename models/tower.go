@@ -12,6 +12,7 @@ type Tower struct {
 	OrgId      uuid.UUID `gorm:"not null;index" json:"orgId"`
 	Society    *Society  `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null" json:"society,omitempty"`
 	FloorCount int       `gorm:"not null" json:"floorCount"`
+	Name       string    `gorm:"not null" json:"name"`
 	CreatedAt  time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt  time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 }
