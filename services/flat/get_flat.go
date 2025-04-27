@@ -72,7 +72,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	var flatData []models.Flat
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
-		Where("flat.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
+		Where("flats.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
 		Preload("Owners").
 		Order("flats.id").
 		Limit(custom.LIMIT + 1)

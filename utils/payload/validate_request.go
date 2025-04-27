@@ -2,6 +2,7 @@ package payload
 
 import (
 	"circledigital.in/real-state-erp/utils/custom"
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,7 @@ func ValidateAndDecodeRequest[T any](w http.ResponseWriter, r *http.Request) *T 
 	}
 
 	if err := validatorObj.Struct(payload); err != nil {
+		log.Println(err)
 		HandleError(w, &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid / missing fields in request body",
