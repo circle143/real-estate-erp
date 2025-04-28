@@ -32,9 +32,9 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	if filter == "1" || filter == "2" {
 		// 1 -> sold // 2 -> unsold
 		if filter == "1" {
-			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
-		} else {
 			query = query.Where("flats.sold_by != ?", custom.UNSOLD)
+		} else {
+			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
 		}
 	}
 
@@ -87,9 +87,9 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	if filter == "1" || filter == "2" {
 		// 1 -> sold // 2 -> unsold
 		if filter == "1" {
-			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
-		} else {
 			query = query.Where("flats.sold_by != ?", custom.UNSOLD)
+		} else {
+			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
 		}
 	}
 
