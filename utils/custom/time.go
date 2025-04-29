@@ -47,3 +47,29 @@ func (d DateOnly) Value() (driver.Value, error) {
 	}
 	return d.Time.Format(dateFormat), nil
 }
+
+func (d *DateOnly) Scan(value interface{}) error {
+	if value == nil {
+		*d = DateOnly{}
+		return nil
+	}
+	switch v := value.(type) {
+	case time.Time:
+		d.Time = v
+	case string:
+		t, err := time.Parse(dateFormat, v)
+		if err != nil {
+			return err
+		}
+		d.Time = t
+	case []byte:
+		t, err := time.Parse(dateFormat, string(v))
+		if err != nil {
+			return err
+		}
+		d.Time = t
+	default:
+		return fmt.Errorf("cannot scan type %T into DateOnly", value)
+	}
+	return nil
+}
