@@ -87,7 +87,7 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		flatModel := models.Flat{
 			Id: uuid.MustParse(flatId),
 		}
-		return tx.Model(&flatModel).Update("seller", ac.Seller).Error
+		return tx.Model(&flatModel).Update("sold_by", ac.Seller).Error
 
 	})
 }
