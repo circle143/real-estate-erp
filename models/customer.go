@@ -14,7 +14,7 @@ type Customer struct {
 	Salutation       custom.Salutation    `gorm:"not null" json:"salutation"`
 	FirstName        string               `gorm:"not null" json:"firstName"`
 	LastName         string               `gorm:"not null" json:"lastName"`
-	DateOfBirth      time.Time            `gorm:"not null" json:"dateOfBirth"`
+	DateOfBirth      custom.DateOnly      `gorm:"type:date;not null" json:"dateOfBirth"`
 	Gender           custom.Gender        `gorm:"not null" json:"gender"`
 	Photo            string               `gorm:"not null" json:"photo"`
 	MaritalStatus    custom.MaritalStatus `gorm:"not null" json:"maritalStatus"`
@@ -23,7 +23,7 @@ type Customer struct {
 	PhoneNumber      string               `gorm:"not null" json:"phoneNumber"`
 	MiddleName       string               `json:"middleName"`
 	NumberOfChildren int                  `json:"numberOfChildren"`
-	AnniversaryDate  time.Time            `json:"anniversaryDate"`
+	AnniversaryDate  *custom.DateOnly     `gorm:"type:date" json:"anniversaryDate"`
 	AadharNumber     string               `json:"aadharNumber"`
 	PanNumber        string               `json:"panNumber"`
 	PassportNumber   string               `json:"passportNumber"`
