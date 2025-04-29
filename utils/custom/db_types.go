@@ -41,9 +41,9 @@ func (r UserRole) IsValid() bool {
 }
 
 const (
-	DIRECT Seller = "direct"
-	BROKER Seller = "broker"
-	UNSOLD Seller = "unsold"
+	DIRECT Seller = "Direct"
+	BROKER Seller = "Broker"
+	UNSOLD Seller = "Unsold"
 )
 
 func (s Seller) IsValid() bool {
@@ -56,14 +56,16 @@ func (s Seller) IsValid() bool {
 }
 
 const (
-	MR   Salutation = "mr"
-	MRS  Salutation = "mrs"
-	MISS Salutation = "miss"
+	MR   Salutation = "Mr."
+	MRS  Salutation = "Mrs."
+	MISS Salutation = "Ms."
+	DR   Salutation = "Dr."
+	PROF Salutation = "Prof."
 )
 
 func (s Salutation) IsValid() bool {
 	switch s {
-	case MR, MRS, MISS:
+	case MR, MRS, MISS, DR, PROF:
 		return true
 	default:
 		return false
@@ -71,9 +73,9 @@ func (s Salutation) IsValid() bool {
 }
 
 const (
-	MALE        Gender = "male"
-	FEMALE      Gender = "female"
-	TRANSGENDER Gender = "transgender"
+	MALE        Gender = "Male"
+	FEMALE      Gender = "Female"
+	TRANSGENDER Gender = "Transgender"
 )
 
 func (g Gender) IsValid() bool {
@@ -86,8 +88,8 @@ func (g Gender) IsValid() bool {
 }
 
 const (
-	MARRIED MaritalStatus = "married"
-	SINGLE  MaritalStatus = "single"
+	MARRIED MaritalStatus = "Married"
+	SINGLE  MaritalStatus = "Single"
 )
 
 func (m MaritalStatus) IsValid() bool {
@@ -100,10 +102,10 @@ func (m MaritalStatus) IsValid() bool {
 }
 
 const (
-	RESIDENT Nationality = "resident"
-	PIO      Nationality = "pio"
-	NRI      Nationality = "nri"
-	OCI      Nationality = "oci"
+	RESIDENT Nationality = "Resident"
+	PIO      Nationality = "PIO"
+	NRI      Nationality = "NRI"
+	OCI      Nationality = "OCI"
 )
 
 func (n Nationality) IsValid() bool {
