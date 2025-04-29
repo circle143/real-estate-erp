@@ -1,6 +1,7 @@
 package custom
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,19 +14,20 @@ type DateOnly struct {
 	time.Time
 }
 
+const dateFormat = "2006-01-02"
+
 func (d *DateOnly) UnmarshalJSON(b []byte) error {
 	s := strings.Trim(string(b), `"`)
 	if s == "" || s == "null" {
-		// Leave a pointer as nil by not modifying the object
 		*d = DateOnly{}
 		return nil
 	}
-	t, err := time.Parse("2006-01-02", s)
+	t, err := time.Parse(dateFormat, s)
 	if err != nil {
 		log.Println(err)
 		return &RequestError{
 			Status:  http.StatusBadRequest,
-			Message: "Date in invalid format",
+			Message: "Date in invalid format (expected YYYY-MM-DD)",
 		}
 	}
 	d.Time = t
@@ -33,5 +35,15 @@ func (d *DateOnly) UnmarshalJSON(b []byte) error {
 }
 
 func (d *DateOnly) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, d.Time.Format("2006-01-02"))), nil
+	if d.Time.IsZero() {
+		return []byte("null"), nil
+	}
+	return []byte(fmt.Sprintf(`"%s"`, d.Time.Format(dateFormat))), nil
+}
+
+func (d DateOnly) Value() (driver.Value, error) {
+	if d.Time.IsZero() {
+		return nil, nil
+	}
+	return d.Time.Format(dateFormat), nil
 }
