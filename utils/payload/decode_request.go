@@ -69,6 +69,13 @@ func decodeJSON[T any](w http.ResponseWriter, r *http.Request) (T, error) {
 				Message: message,
 			}
 
+		case strings.Contains(err.Error(), "parsing time"):
+			message := "Request body contains invalid date time field"
+			return payload, &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: message,
+			}
+
 		default:
 			log.Printf("Error decoding request body: %v\n", err)
 			return payload, err
