@@ -10,6 +10,7 @@ import (
 )
 
 // DateOnly field define date with format year-month-day
+// from chat-gpt
 type DateOnly struct {
 	time.Time
 }
