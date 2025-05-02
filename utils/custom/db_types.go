@@ -4,7 +4,7 @@ package custom
 
 type OrganizationStatus string
 type UserRole string
-type Seller string
+type Facing string
 type Salutation string
 type Gender string
 type MaritalStatus string
@@ -42,14 +42,13 @@ func (r UserRole) IsValid() bool {
 }
 
 const (
-	DIRECT Seller = "Direct"
-	BROKER Seller = "Broker"
-	UNSOLD Seller = "Unsold"
+	SPECIAL Facing = "park/road"
+	DEFAULT Facing = "default"
 )
 
-func (s Seller) IsValid() bool {
+func (s Facing) IsValid() bool {
 	switch s {
-	case DIRECT, BROKER, UNSOLD:
+	case SPECIAL, DEFAULT:
 		return true
 	default:
 		return false

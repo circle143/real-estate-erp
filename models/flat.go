@@ -15,7 +15,7 @@ type Flat struct {
 	FlatType    *FlatType     `gorm:"foreignKey:FlatTypeId;not null" json:"flatType,omitempty"`
 	Name        string        `gorm:"not null" json:"name"`
 	FloorNumber int           `gorm:"not null" json:"floorNumber"`
-	SoldBy      custom.Seller `gorm:"not null" json:"soldBy"`
+	Facing      custom.Facing `gorm:"not null" json:"facing"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updatedAt"`
 	Owners      []Customer    `gorm:"foreignKey:FlatId" json:"owners,omitempty"`
