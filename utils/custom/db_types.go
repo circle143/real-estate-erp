@@ -9,6 +9,7 @@ type Salutation string
 type Gender string
 type MaritalStatus string
 type Nationality string
+type PreferenceLocationChargesType string
 
 const (
 	ACTIVE   OrganizationStatus = "active"
@@ -111,6 +112,20 @@ const (
 func (n Nationality) IsValid() bool {
 	switch n {
 	case RESIDENT, PIO, NRI, OCI:
+		return true
+	default:
+		return false
+	}
+}
+
+const (
+	FLOOR  PreferenceLocationChargesType = "floor"
+	FACING PreferenceLocationChargesType = "facing"
+)
+
+func (plc PreferenceLocationChargesType) IsValid() bool {
+	switch plc {
+	case FLOOR, FACING:
 		return true
 	default:
 		return false
