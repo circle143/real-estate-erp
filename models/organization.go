@@ -3,6 +3,7 @@ package models
 import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -12,6 +13,7 @@ type Organization struct {
 	Name      string                    `gorm:"not null" json:"name"`
 	CreatedAt time.Time                 `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time                 `gorm:"autoUpdateTime" json:"updatedAt"`
+	DeletedAt gorm.DeletedAt            `gorm:"index"`
 	Status    custom.OrganizationStatus `gorm:"not null" json:"status"`
 	Logo      string                    `json:"logo"`
 	Gst       string                    `json:"gst"`

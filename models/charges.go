@@ -3,6 +3,7 @@ package models
 import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -20,6 +21,7 @@ type PreferenceLocationCharge struct {
 	Disable      bool                                 `gorm:"not null;default:false" json:"disable"`
 	CreatedAt    time.Time                            `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time                            `gorm:"autoUpdateTime" json:"updatedAt"`
+	DeletedAt    gorm.DeletedAt                       `gorm:"index"`
 	PriceHistory []PriceHistory                       `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:location" json:"priceHistory;omitempty"`
 }
 
@@ -40,6 +42,7 @@ type OtherCharge struct {
 	Disable       bool           `gorm:"not null;default:false" json:"disable"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
+	DeletedAt     gorm.DeletedAt `gorm:"index"`
 	PriceHistory  []PriceHistory `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:other" json:"priceHistory;omitempty"`
 }
 

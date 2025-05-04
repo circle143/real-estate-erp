@@ -23,7 +23,7 @@ type FlatType struct {
 	Price          float64        `gorm:"not null" json:"price"`
 	CreatedAt      time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
-	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
+	DeletedAt      gorm.DeletedAt `gorm:"index"`
 	PriceHistory   []PriceHistory `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:flat-type" json:"priceHistory;omitempty"`
 }
 
