@@ -10,6 +10,7 @@ type Gender string
 type MaritalStatus string
 type Nationality string
 type PreferenceLocationChargesType string
+type PriceChargeType string
 
 const (
 	ACTIVE   OrganizationStatus = "active"
@@ -125,6 +126,21 @@ const (
 func (plc PreferenceLocationChargesType) IsValid() bool {
 	switch plc {
 	case FLOOR, FACING:
+		return true
+	default:
+		return false
+	}
+}
+
+const (
+	FLATTYPECHARGE           PriceChargeType = "flat-type"
+	PREFERENCELOCATIONCHARGE PriceChargeType = "location"
+	OTHERCHARGE              PriceChargeType = "other"
+)
+
+func (plc PriceChargeType) IsValid() bool {
+	switch plc {
+	case FLATTYPECHARGE, PREFERENCELOCATIONCHARGE, OTHERCHARGE:
 		return true
 	default:
 		return false

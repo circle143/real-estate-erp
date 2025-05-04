@@ -18,7 +18,7 @@ type Flat struct {
 	Facing      custom.Facing `gorm:"not null" json:"facing"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updatedAt"`
-	SaleDetail  Sale          `gorm:"foreignKye:FlatId" json:"saleDetail,omitempty"`
+	SaleDetail  *Sale         `gorm:"foreignKey:FlatId" json:"saleDetail,omitempty"`
 	//Owners      []Customer    `gorm:"foreignKey:FlatId" json:"owners,omitempty"`
 }
 
