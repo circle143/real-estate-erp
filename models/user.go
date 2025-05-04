@@ -9,7 +9,7 @@ import (
 // User model
 type User struct {
 	OrgId          uuid.UUID       `gorm:"not null;index" json:"orgId"`
-	Organization   *Organization   `gorm:"foreignKey:OrgId;not null" json:"organization,omitempty"`
+	Organization   *Organization   `gorm:"foreignKey:OrgId;not null;constraint:OnUpdate:CASCADE" json:"organization,omitempty"`
 	Name           string          `gorm:"not null" json:"name"`
 	Email          string          `gorm:"primaryKey" json:"email"`
 	Role           custom.UserRole `gorm:"not null" json:"role"`

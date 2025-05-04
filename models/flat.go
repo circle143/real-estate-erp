@@ -8,7 +8,7 @@ import (
 
 // Flat model
 type Flat struct {
-	Id          uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid();constraint:OnUpdate:CASCADE" json:"id"`
+	Id          uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TowerId     uuid.UUID     `gorm:"not null;index" json:"towerId"`
 	Tower       *Tower        `gorm:"foreignKey:TowerId;not null" json:"tower,omitempty"`
 	FlatTypeId  uuid.UUID     `gorm:"not null;index" json:"flatTypeId"`

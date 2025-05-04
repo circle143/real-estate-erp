@@ -8,7 +8,7 @@ import (
 
 // Customer model
 type Customer struct {
-	Id               uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid();constraint:OnUpdate:CASCADE" json:"id"`
+	Id               uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SaleId           uuid.UUID            `gorm:"not null;index" json:"saleId"`
 	Level            int                  `gorm:"not null" json:"level"`
 	Salutation       custom.Salutation    `gorm:"not null" json:"salutation"`

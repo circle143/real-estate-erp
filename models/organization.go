@@ -8,7 +8,7 @@ import (
 
 // Organization model
 type Organization struct {
-	Id        uuid.UUID                 `gorm:"type:uuid;primaryKey;default:gen_random_uuid();constraint:OnUpdate:CASCADE" json:"id"`
+	Id        uuid.UUID                 `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name      string                    `gorm:"not null" json:"name"`
 	CreatedAt time.Time                 `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt time.Time                 `gorm:"autoUpdateTime" json:"updatedAt"`
