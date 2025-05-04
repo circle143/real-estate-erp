@@ -11,28 +11,48 @@ import (
 )
 
 type hCreateFlatType struct {
-	Name  string  `validate:"required"`
-	Type  string  `validate:"required"`
-	Price float64 `validate:"required"`
-	Area  float64 `validate:"required"`
+	Name           string  `validate:"required"`
+	Accommodation  string  `validate:"required"`
+	ReraCarpetArea float64 `validate:"required"`
+	BalconyArea    float64 `validate:"required"`
+	SuperArea      float64 `validate:"required"`
+	Price          float64 `validate:"required"`
+}
+
+func (cft *hCreateFlatType) getBuiltUpArea() float64 {
+	return cft.ReraCarpetArea + cft.BalconyArea
 }
 
 func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models.FlatType, error) {
 	flatType := models.FlatType{
-		OrgId:     uuid.MustParse(orgId),
-		SocietyId: society,
-		Name:      cft.Name,
-		Type:      cft.Type,
-		Price:     cft.Price,
-		Area:      cft.Area,
+		OrgId:          uuid.MustParse(orgId),
+		SocietyId:      society,
+		Name:           cft.Name,
+		Accommodation:  cft.Accommodation,
+		ReraCarpetArea: cft.ReraCarpetArea,
+		BalconyArea:    cft.BalconyArea,
+		BuiltUpArea:    cft.getBuiltUpArea(),
+		SuperArea:      cft.SuperArea,
+		Price:          cft.Price,
 	}
 
-	result := db.Create(&flatType)
-	if result.Error != nil {
-		return nil, result.Error
-	}
+	err := db.Transaction(func(tx *gorm.DB) error {
+		// add record in flat type
+		err := tx.Create(&flatType).Error
+		if err != nil {
+			return err
+		}
 
-	return &flatType, nil
+		// add record in price history
+		priceHistory := models.PriceHistory{
+			ChargeId:   flatType.Id,
+			ChargeType: string(custom.FLATTYPECHARGE),
+			Price:      flatType.Price,
+		}
+		return tx.Create(&priceHistory).Error
+	})
+
+	return &flatType, err
 }
 
 func (fts *flatTypeService) createFlatType(w http.ResponseWriter, r *http.Request) {

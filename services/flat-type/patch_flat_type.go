@@ -8,42 +8,49 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
-	"strings"
 )
 
 type hUpdateFlatType struct {
-	Name  string
-	Type  string
-	Price float64
-	Area  float64
-}
-
-func (uft *hUpdateFlatType) validate() error {
-	if strings.TrimSpace(uft.Name) == "" && strings.TrimSpace(uft.Type) == "" && uft.Price == 0.0 && uft.Area == 0.0 {
-		return &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid field values to update.",
-		}
-	}
-	return nil
+	Price float64 `validate:"required"`
 }
 
 func (uft *hUpdateFlatType) execute(db *gorm.DB, flatType string) error {
-	err := uft.validate()
-	if err != nil {
-		return err
-	}
-
 	flatTypeModel := models.FlatType{
 		Id: uuid.MustParse(flatType),
 	}
 
-	return db.Model(&flatTypeModel).Updates(models.FlatType{
-		Name:  uft.Name,
-		Type:  uft.Type,
-		Price: uft.Price,
-		Area:  uft.Area,
-	}).Error
+	return db.Transaction(func(tx *gorm.DB) error {
+		// get current active price
+		var activePrice models.PriceHistory
+		err := tx.
+			Where("charge_id = ? AND charge_type = ?", flatTypeModel.Id, string(custom.FLATTYPECHARGE)).
+			Order("active_from DESC").
+			First(&activePrice).Error
+
+		if err != nil {
+			return err
+		}
+
+		// update price in db
+		err = tx.Model(&flatTypeModel).Update("price", uft.Price).Error
+		if err != nil {
+			return err
+		}
+
+		// add new price record
+		priceHistory := models.PriceHistory{
+			ChargeId:   flatTypeModel.Id,
+			ChargeType: string(custom.FLATTYPECHARGE),
+			Price:      uft.Price,
+		}
+		err = tx.Create(&priceHistory).Error
+		if err != nil {
+			return err
+		}
+
+		// update previous active record to update active till property
+		return tx.Model(&activePrice).Update("active_till", priceHistory.ActiveFrom).Error
+	})
 }
 
 func (fts *flatTypeService) updateFlatType(w http.ResponseWriter, r *http.Request) {
