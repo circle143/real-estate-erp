@@ -17,6 +17,7 @@ type PreferenceLocationCharge struct {
 	Type         custom.PreferenceLocationChargesType `gorm:"not null" json:"type"`
 	Floor        int                                  `json:"floor"`
 	Price        float64                              `gorm:"not null" json:"price"`
+	Disable      bool                                 `gorm:"not null;default:false" json:"disable"`
 	CreatedAt    time.Time                            `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time                            `gorm:"autoUpdateTime" json:"updatedAt"`
 	PriceHistory []PriceHistory                       `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:location" json:"priceHistory;omitempty"`
@@ -36,6 +37,7 @@ type OtherCharge struct {
 	Optional      bool           `gorm:"not null;default:false" json:"optional"`
 	AdvanceMonths int            `json:"advanceMonths"` // in case of recurring charge defines advance required in months
 	Price         float64        `gorm:"not null" json:"price"`
+	Disable       bool           `gorm:"not null;default:false" json:"disable"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime" json:"updatedAt"`
 	PriceHistory  []PriceHistory `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:other" json:"priceHistory;omitempty"`
