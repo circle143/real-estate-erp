@@ -3,7 +3,6 @@ package models
 import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -17,7 +16,7 @@ type User struct {
 	CreatedAt      time.Time       `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time       `gorm:"autoUpdateTime" json:"updatedAt"`
 	ProfilePicture string          `json:"profilePicture"`
-	DeletedAt      gorm.DeletedAt  `gorm:"index"`
+	//DeletedAt      gorm.DeletedAt  `gorm:"index"`
 }
 
 func (u User) GetCreatedAt() time.Time {

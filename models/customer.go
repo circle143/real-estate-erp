@@ -3,7 +3,6 @@ package models
 import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -33,7 +32,7 @@ type Customer struct {
 	CompanyName      string               `json:"companyName"`
 	CreatedAt        time.Time            `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt        time.Time            `gorm:"autoUpdateTime" json:"updatedAt"`
-	DeletedAt        gorm.DeletedAt       `gorm:"index"`
+	//DeletedAt        gorm.DeletedAt       `gorm:"index"`
 }
 
 func (u *Customer) GetCreatedAt() time.Time {
