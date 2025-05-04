@@ -43,8 +43,8 @@ func (r UserRole) IsValid() bool {
 }
 
 const (
-	SPECIAL Facing = "park/road"
-	DEFAULT Facing = "default"
+	SPECIAL Facing = "Park/Road"
+	DEFAULT Facing = "Default"
 )
 
 func (s Facing) IsValid() bool {

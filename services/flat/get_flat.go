@@ -18,8 +18,9 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("towers.society_id = ? AND towers.org_id = ?", societyRera, orgId).
-		Preload("Owners").
-		Order("flats.id").
+		Preload("SaleDetail").
+		Preload("SaleDetail.Customers").
+		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
 	if strings.TrimSpace(cursor) != "" {
@@ -30,19 +31,18 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	}
 
 	if filter == "1" || filter == "2" {
-		// 1 -> sold // 2 -> unsold
+		// 1 -> sold and 2 -> unsold
 		if filter == "1" {
-			query = query.Where("flats.sold_by != ?", custom.UNSOLD)
+			query = query.Where("EXISTS (SELECT 1 FROM sales WHERE sales.flat_id = flats.id)")
 		} else {
-			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
+			query = query.Where("NOT EXISTS (SELECT 1 FROM sales WHERE sales.flat_id = flats.id)")
 		}
 	}
 
-	result := query.Find(&flatData)
-	if result.Error != nil {
-		return nil, result.Error
+	err := query.Find(&flatData).Error
+	if err != nil {
+		return nil, err
 	}
-
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
@@ -73,8 +73,9 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("flats.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
-		Preload("Owners").
-		Order("flats.id").
+		Preload("SaleDetail").
+		Preload("SaleDetail.Customers").
+		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
 	if strings.TrimSpace(cursor) != "" {
@@ -85,11 +86,11 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	}
 
 	if filter == "1" || filter == "2" {
-		// 1 -> sold // 2 -> unsold
+		// 1 -> sold and 2 -> unsold
 		if filter == "1" {
-			query = query.Where("flats.sold_by != ?", custom.UNSOLD)
+			query = query.Where("EXISTS (SELECT 1 FROM sales WHERE sales.flat_id = flats.id)")
 		} else {
-			query = query.Where("flats.sold_by = ?", custom.UNSOLD)
+			query = query.Where("NOT EXISTS (SELECT 1 FROM sales WHERE sales.flat_id = flats.id)")
 		}
 	}
 

@@ -18,9 +18,19 @@ type hCreateFlat struct {
 	FlatType    string `validate:"required,uuid"`
 	Name        string `validate:"required"`
 	FloorNumber int    `validate:"gte=0"`
+	Facing      string `validate:"required"`
 }
 
 func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
+	// validate facing
+	facing := custom.Facing(cf.Facing)
+	if !facing.IsValid() {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid flat facing value.",
+		}
+	}
+
 	// validate correct flat type
 	flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(cf.FlatType))
 	err := common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
@@ -67,7 +77,7 @@ func (cf *hCreateFlat) execute(db *gorm.DB, orgId, society string) (*models.Flat
 		FlatTypeId:  uuid.MustParse(cf.FlatType),
 		Name:        cf.Name,
 		FloorNumber: cf.FloorNumber,
-		SoldBy:      custom.UNSOLD,
+		Facing:      custom.Facing(cf.Facing),
 	}
 
 	result := db.Create(&flat)

@@ -7,6 +7,7 @@ import (
 )
 
 // Flat model
+// todo method to generate flat name from floor number, flat count in floor, and tower name
 type Flat struct {
 	Id          uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	TowerId     uuid.UUID     `gorm:"not null;index" json:"towerId"`
@@ -18,8 +19,8 @@ type Flat struct {
 	Facing      custom.Facing `gorm:"not null" json:"facing"`
 	CreatedAt   time.Time     `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt   time.Time     `gorm:"autoUpdateTime" json:"updatedAt"`
+	SaleDetail  *Sale         `gorm:"foreignKey:FlatId" json:"saleDetail,omitempty"`
 	//DeletedAt   gorm.DeletedAt `gorm:"index"`
-	SaleDetail *Sale `gorm:"foreignKey:FlatId" json:"saleDetail,omitempty"`
 }
 
 func (u Flat) GetCreatedAt() time.Time {
