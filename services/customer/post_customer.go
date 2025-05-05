@@ -13,8 +13,8 @@ import (
 )
 
 type hAddCustomerToFlat struct {
-	Details []customerDetails `validate:"required,min=1,dive"`
-	Seller  string            `validate:"required"`
+	Details         []customerDetails `validate:"required,min=1,dive"`
+	OptionalCharges []string
 }
 
 func (ac *hAddCustomerToFlat) validate(db *gorm.DB, orgId, society, flatId string) error {
@@ -22,14 +22,6 @@ func (ac *hAddCustomerToFlat) validate(db *gorm.DB, orgId, society, flatId strin
 	err := common.IsSameSociety(societyInfoService, orgId, society)
 	if err != nil {
 		return err
-	}
-
-	seller := custom.Seller(ac.Seller)
-	if !seller.IsValid() {
-		return &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid seller value provided.",
-		}
 	}
 
 	for _, detail := range ac.Details {
@@ -48,47 +40,128 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		return err
 	}
 
-	customers := make([]*models.Customer, 0, len(ac.Details))
-
-	for _, d := range ac.Details {
-		customer := &models.Customer{
-			FlatId:           uuid.MustParse(flatId),
-			Level:            d.Level,
-			Salutation:       custom.Salutation(d.Salutation),
-			FirstName:        d.FirstName,
-			LastName:         d.LastName,
-			DateOfBirth:      d.DateOfBirth,
-			Gender:           custom.Gender(d.Gender),
-			Photo:            d.Photo,
-			MaritalStatus:    custom.MaritalStatus(d.MaritalStatus),
-			Nationality:      custom.Nationality(d.Nationality),
-			Email:            d.Email,
-			PhoneNumber:      d.PhoneNumber,
-			MiddleName:       d.MiddleName,
-			NumberOfChildren: d.NumberOfChildren,
-			AnniversaryDate:  d.AnniversaryDate,
-			AadharNumber:     d.AadharNumber,
-			PanNumber:        d.PanNumber,
-			PassportNumber:   d.PassportNumber,
-			Profession:       d.Profession,
-			Designation:      d.Designation,
-			CompanyName:      d.CompanyName,
-		}
-		customers = append(customers, customer)
-	}
-
 	return db.Transaction(func(tx *gorm.DB) error {
-		err := tx.Create(customers).Error
+		flatModel := models.Flat{
+			Id: uuid.MustParse(flatId),
+		}
+		err := tx.First(&flatModel).Preload("FlatType").Error
+		if err != nil {
+			return err
+		}
+		superArea := flatModel.FlatType.SuperArea
+
+		// get required preference location charges
+		var locationCharges []models.PreferenceLocationCharge
+		locationChargeQuery := tx.
+			Where("org_id = ? and society = ? and disabled = false", orgId, society).
+			Where("type = ? and floor = ?", custom.FLOOR, flatModel.FloorNumber)
+		if flatModel.Facing == custom.SPECIAL {
+			locationChargeQuery = locationChargeQuery.Or("type = ?", custom.FACING)
+		}
+
+		err = locationChargeQuery.Find(&locationCharges).Error
 		if err != nil {
 			return err
 		}
 
-		// update flat to sold
-		flatModel := models.Flat{
-			Id: uuid.MustParse(flatId),
+		// other charges
+		var otherCharges []models.OtherCharge
+		err = tx.
+			Where("org_id = ? and society = ? and disabled = false and optional = false", orgId, society).
+			Find(&otherCharges).Error
+		if err != nil {
+			return err
 		}
-		return tx.Model(&flatModel).Update("sold_by", ac.Seller).Error
 
+		// optional charges
+		var optionalCharges []models.OtherCharge
+		err = tx.
+			Where("org_id = ? and society = ? and disabled = false and optional = true", orgId, society).
+			Where("id in ?", ac.OptionalCharges).
+			Find(&optionalCharges).Error
+		if err != nil {
+			return err
+		}
+
+		// price calculation
+		var priceBreakdowns []models.PriceBreakdownDetail
+		var totalPrice float64
+
+		// Add location charges
+		for _, charge := range locationCharges {
+			detail := models.PriceBreakdownDetail{
+				Type:    "location",
+				Price:   charge.Price,
+				Summary: charge.Summary,
+				Total:   superArea * charge.Price,
+			}
+			totalPrice += detail.Total
+			priceBreakdowns = append(priceBreakdowns, detail)
+		}
+
+		// Helper to process other/optional charges
+		processOtherCharges := func(charges []models.OtherCharge) {
+			for _, charge := range charges {
+				detail := models.PriceBreakdownDetail{
+					Type:    "other",
+					Price:   charge.Price,
+					Summary: charge.Summary,
+				}
+
+				if charge.Recurring && charge.AdvanceMonths >= 1 {
+					detail.Total = superArea * charge.Price * float64(charge.AdvanceMonths)
+				} else {
+					detail.Total = superArea * charge.Price
+				}
+
+				totalPrice += detail.Total
+				priceBreakdowns = append(priceBreakdowns, detail)
+			}
+		}
+
+		processOtherCharges(otherCharges)
+		processOtherCharges(optionalCharges)
+
+		saleModel := models.Sale{
+			FlatId:         uuid.MustParse(flatId),
+			SocietyId:      society,
+			OrgId:          uuid.MustParse(orgId),
+			TotalPrice:     totalPrice,
+			PriceBreakdown: priceBreakdowns,
+		}
+		err = tx.Create(&saleModel).Error
+		if err != nil {
+			return err
+		}
+
+		customers := make([]*models.Customer, 0, len(ac.Details))
+		for _, d := range ac.Details {
+			customer := &models.Customer{
+				SaleId:           saleModel.Id,
+				Level:            d.Level,
+				Salutation:       custom.Salutation(d.Salutation),
+				FirstName:        d.FirstName,
+				LastName:         d.LastName,
+				DateOfBirth:      d.DateOfBirth,
+				Gender:           custom.Gender(d.Gender),
+				Photo:            d.Photo,
+				MaritalStatus:    custom.MaritalStatus(d.MaritalStatus),
+				Nationality:      custom.Nationality(d.Nationality),
+				Email:            d.Email,
+				PhoneNumber:      d.PhoneNumber,
+				MiddleName:       d.MiddleName,
+				NumberOfChildren: d.NumberOfChildren,
+				AnniversaryDate:  d.AnniversaryDate,
+				AadharNumber:     d.AadharNumber,
+				PanNumber:        d.PanNumber,
+				PassportNumber:   d.PassportNumber,
+				Profession:       d.Profession,
+				Designation:      d.Designation,
+				CompanyName:      d.CompanyName,
+			}
+			customers = append(customers, customer)
+		}
+		return tx.Create(customers).Error
 	})
 }
 
@@ -110,7 +183,7 @@ func (cs *customerService) addCustomerToFlat(w http.ResponseWriter, r *http.Requ
 
 	var response custom.JSONResponse
 	response.Error = false
-	response.Message = "Successfully added customer to flats."
+	response.Message = "Successfully created sale record."
 
 	payload.EncodeJSON(w, http.StatusCreated, response)
 }

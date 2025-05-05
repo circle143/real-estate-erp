@@ -19,7 +19,7 @@ func (cs *customerService) GetRoutes() *chi.Mux {
 
 		router.Post("/", cs.addCustomerToFlat)
 		//router.Delete("/{customer}", cs.addCustomerToFlat)
-		router.Patch("/{customer}", cs.updateCustomerDetails)
+		//router.Patch("/{customer}", cs.updateCustomerDetails)
 	})
 
 	return mux

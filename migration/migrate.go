@@ -17,6 +17,16 @@ func Migrate(db *gorm.DB) {
 		&models.Customer{},
 	)
 
+	//err := db.Migrator().DropTable(
+	//	&models.Organization{},
+	//	&models.User{},
+	//	&models.Society{},
+	//	&models.FlatType{},
+	//	&models.Tower{},
+	//	&models.Flat{},
+	//	&models.Customer{},
+	//)
+
 	if err != nil {
 		log.Fatalf("Error migrating db: %v", err)
 	}
