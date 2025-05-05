@@ -19,7 +19,7 @@ func (fts *flatTypeService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/", fts.createFlatType)
-		router.Patch("/{flatType}", fts.updateFlatType)
+		//router.Patch("/{flatType}", fts.updateFlatType)
 		router.Delete("/{flatType}", fts.deleteFlatType)
 	})
 

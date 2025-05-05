@@ -133,14 +133,13 @@ func (plc PreferenceLocationChargesType) IsValid() bool {
 }
 
 const (
-	FLATTYPECHARGE           PriceChargeType = "flat-type"
 	PREFERENCELOCATIONCHARGE PriceChargeType = "location"
 	OTHERCHARGE              PriceChargeType = "other"
 )
 
 func (plc PriceChargeType) IsValid() bool {
 	switch plc {
-	case FLATTYPECHARGE, PREFERENCELOCATIONCHARGE, OTHERCHARGE:
+	case PREFERENCELOCATIONCHARGE, OTHERCHARGE:
 		return true
 	default:
 		return false

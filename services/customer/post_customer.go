@@ -14,6 +14,7 @@ import (
 
 type hAddCustomerToFlat struct {
 	Details         []customerDetails `validate:"required,min=1,dive"`
+	BasicCost       float64           `validate:"required"`
 	OptionalCharges []string
 }
 
@@ -87,10 +88,20 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		var priceBreakdowns []models.PriceBreakdownDetail
 		var totalPrice float64
 
+		// basic cost
+		basicCostDetail := models.PriceBreakdownDetail{
+			Type:    "basic-cost",
+			Price:   ac.BasicCost,
+			Summary: "Basic flat cost",
+			Total:   superArea * ac.BasicCost,
+		}
+		totalPrice += basicCostDetail.Total
+		priceBreakdowns = append(priceBreakdowns, basicCostDetail)
+
 		// Add location charges
 		for _, charge := range locationCharges {
 			detail := models.PriceBreakdownDetail{
-				Type:    "location",
+				Type:    "preference-location",
 				Price:   charge.Price,
 				Summary: charge.Summary,
 				Total:   superArea * charge.Price,
@@ -109,9 +120,17 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 				}
 
 				if charge.Recurring && charge.AdvanceMonths >= 1 {
-					detail.Total = superArea * charge.Price * float64(charge.AdvanceMonths)
+					if charge.Fixed {
+						detail.Total = charge.Price * float64(charge.AdvanceMonths)
+					} else {
+						detail.Total = superArea * charge.Price * float64(charge.AdvanceMonths)
+					}
 				} else {
-					detail.Total = superArea * charge.Price
+					if charge.Fixed {
+						detail.Total = charge.Price
+					} else {
+						detail.Total = superArea * charge.Price
+					}
 				}
 
 				totalPrice += detail.Total

@@ -84,6 +84,7 @@ type hAddNewOtherCharge struct {
 	Summary       string `validate:"required"`
 	Recurring     bool
 	Optional      bool
+	Fixed         bool
 	AdvanceMonths int
 	Price         float64
 }
@@ -113,6 +114,7 @@ func (h *hAddNewOtherCharge) execute(db *gorm.DB, orgId, society string) (*model
 		Optional:      h.Optional,
 		AdvanceMonths: h.AdvanceMonths,
 		Price:         h.Price,
+		Fixed:         h.Fixed,
 	}
 
 	err = db.Transaction(func(tx *gorm.DB) error {

@@ -39,6 +39,7 @@ type OtherCharge struct {
 	AdvanceMonths int       `json:"advanceMonths;omitempty"` // in case of recurring charge defines advance required in months
 	Price         float64   `gorm:"not null" json:"price"`
 	Disable       bool      `gorm:"not null;default:false" json:"disable"`
+	Fixed         bool      `gorm:"not null;default:false" json:"fixed"`
 	CreatedAt     time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt     time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
 	//DeletedAt     gorm.DeletedAt `gorm:"index"`

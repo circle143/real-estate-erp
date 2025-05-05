@@ -151,6 +151,7 @@ type hUpdateOtherChargeDetails struct {
 	Disable       bool
 	Recurring     bool
 	Optional      bool
+	Fixed         bool
 	AdvanceMonths int
 }
 
@@ -176,6 +177,7 @@ func (h *hUpdateOtherChargeDetails) execute(db *gorm.DB, orgId, society, chargeI
 		"optional":       h.Optional,
 		"summary":        h.Summary,
 		"advance_months": h.AdvanceMonths,
+		"fixed":          h.Fixed,
 	}
 
 	return db.Model(&chargeModel).

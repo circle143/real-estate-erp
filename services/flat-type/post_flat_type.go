@@ -2,7 +2,6 @@ package flat_type
 
 import (
 	"circledigital.in/real-state-erp/models"
-	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
@@ -34,20 +33,9 @@ func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models
 		BalconyArea:    cft.BalconyArea,
 		BuiltUpArea:    cft.getBuiltUpArea(),
 		SuperArea:      cft.SuperArea,
-		Price:          cft.Price,
 	}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
-		// add record in flat type
-		err := tx.Create(&flatType).Error
-		if err != nil {
-			return err
-		}
-
-		priceUtil := common.CreatePriceUtil(tx, flatType.Id, custom.FLATTYPECHARGE, flatType.Price)
-		return priceUtil.AddInitialPrice()
-	})
-
+	err := db.Create(&flatType).Error
 	return &flatType, err
 }
 
