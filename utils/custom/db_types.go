@@ -119,8 +119,8 @@ func (n Nationality) IsValid() bool {
 }
 
 const (
-	FLOOR  PreferenceLocationChargesType = "floor"
-	FACING PreferenceLocationChargesType = "facing"
+	FLOOR  PreferenceLocationChargesType = "Floor"
+	FACING PreferenceLocationChargesType = "Facing"
 )
 
 func (plc PreferenceLocationChargesType) IsValid() bool {

@@ -35,6 +35,6 @@ type Customer struct {
 	//DeletedAt        gorm.DeletedAt       `gorm:"index"`
 }
 
-func (u *Customer) GetCreatedAt() time.Time {
+func (u Customer) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }

@@ -24,7 +24,7 @@ type PreferenceLocationCharge struct {
 	//DeletedAt    gorm.DeletedAt                       `gorm:"index"`
 }
 
-func (u *PreferenceLocationCharge) GetCreatedAt() time.Time {
+func (u PreferenceLocationCharge) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }
 
@@ -45,6 +45,6 @@ type OtherCharge struct {
 	PriceHistory []PriceHistory `gorm:"polymorphicType:ChargeType;polymorphicId:ChargeId;polymorphicValue:other" json:"priceHistory;omitempty"`
 }
 
-func (u *OtherCharge) GetCreatedAt() time.Time {
+func (u OtherCharge) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }

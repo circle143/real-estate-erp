@@ -26,8 +26,6 @@ type Sale struct {
 	//DeletedAt      gorm.DeletedAt `gorm:"index"`
 }
 
-// add total price and price breakdown
-
-func (u *Sale) GetCreatedAt() time.Time {
+func (u Sale) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }
