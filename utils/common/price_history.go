@@ -51,6 +51,10 @@ func (p *priceHistoryUtil) AddNewPrice() error {
 		return err
 	}
 
+	if activePrice.Price == p.price {
+		return nil
+	}
+
 	// add new price record
 	priceHistory := models.PriceHistory{
 		ChargeId:   p.chargeId,
