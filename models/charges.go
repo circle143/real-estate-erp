@@ -15,7 +15,7 @@ type PreferenceLocationCharge struct {
 	Society      *Society                             `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
 	Summary      string                               `gorm:"not null" json:"summary"`
 	Type         custom.PreferenceLocationChargesType `gorm:"not null" json:"type"`
-	Floor        int                                  `json:"floor"`
+	Floor        int                                  `json:"floor;omitempty"`
 	Price        float64                              `gorm:"not null" json:"price"`
 	Disable      bool                                 `gorm:"not null;default:false" json:"disable"`
 	CreatedAt    time.Time                            `gorm:"autoCreateTime" json:"createdAt"`
@@ -36,7 +36,7 @@ type OtherCharge struct {
 	Summary       string    `gorm:"not null" json:"summary"`
 	Recurring     bool      `gorm:"not null;default:false" json:"recurring"`
 	Optional      bool      `gorm:"not null;default:false" json:"optional"`
-	AdvanceMonths int       `json:"advanceMonths"` // in case of recurring charge defines advance required in months
+	AdvanceMonths int       `json:"advanceMonths;omitempty"` // in case of recurring charge defines advance required in months
 	Price         float64   `gorm:"not null" json:"price"`
 	Disable       bool      `gorm:"not null;default:false" json:"disable"`
 	CreatedAt     time.Time `gorm:"autoCreateTime" json:"createdAt"`
