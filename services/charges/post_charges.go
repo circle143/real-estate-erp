@@ -88,7 +88,23 @@ type hAddNewOtherCharge struct {
 	Price         float64
 }
 
+func (h *hAddNewOtherCharge) validate() error {
+	if (h.Recurring && h.AdvanceMonths >= 1) || (!h.Recurring && h.AdvanceMonths == 0) {
+		return nil
+	}
+
+	return &custom.RequestError{
+		Status:  http.StatusBadRequest,
+		Message: "Invalid value for field advanceMonths",
+	}
+}
+
 func (h *hAddNewOtherCharge) execute(db *gorm.DB, orgId, society string) (*models.OtherCharge, error) {
+	err := h.validate()
+	if err != nil {
+		return nil, err
+	}
+
 	chargeModel := models.OtherCharge{
 		OrgId:         uuid.MustParse(orgId),
 		SocietyId:     society,
@@ -99,7 +115,7 @@ func (h *hAddNewOtherCharge) execute(db *gorm.DB, orgId, society string) (*model
 		Price:         h.Price,
 	}
 
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		err := tx.Create(&chargeModel).Error
 		if err != nil {
 			return nil
