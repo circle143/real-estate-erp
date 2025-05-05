@@ -2,6 +2,7 @@ package flat_type
 
 import (
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
@@ -43,13 +44,8 @@ func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models
 			return err
 		}
 
-		// add record in price history
-		priceHistory := models.PriceHistory{
-			ChargeId:   flatType.Id,
-			ChargeType: string(custom.FLATTYPECHARGE),
-			Price:      flatType.Price,
-		}
-		return tx.Create(&priceHistory).Error
+		priceUtil := common.CreatePriceUtil(tx, flatType.Id, custom.FLATTYPECHARGE, flatType.Price)
+		return priceUtil.AddInitialPrice()
 	})
 
 	return &flatType, err

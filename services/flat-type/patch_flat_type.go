@@ -2,6 +2,7 @@ package flat_type
 
 import (
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
@@ -20,36 +21,14 @@ func (uft *hUpdateFlatType) execute(db *gorm.DB, flatType string) error {
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
-		// get current active price
-		var activePrice models.PriceHistory
-		err := tx.
-			Where("charge_id = ? AND charge_type = ?", flatTypeModel.Id, string(custom.FLATTYPECHARGE)).
-			Order("active_from DESC").
-			First(&activePrice).Error
-
-		if err != nil {
-			return err
-		}
-
 		// update price in db
-		err = tx.Model(&flatTypeModel).Update("price", uft.Price).Error
+		err := tx.Model(&flatTypeModel).Update("price", uft.Price).Error
 		if err != nil {
 			return err
 		}
 
-		// add new price record
-		priceHistory := models.PriceHistory{
-			ChargeId:   flatTypeModel.Id,
-			ChargeType: string(custom.FLATTYPECHARGE),
-			Price:      uft.Price,
-		}
-		err = tx.Create(&priceHistory).Error
-		if err != nil {
-			return err
-		}
-
-		// update previous active record to update active till property
-		return tx.Model(&activePrice).Update("active_till", priceHistory.ActiveFrom).Error
+		priceHistoryUtil := common.CreatePriceUtil(tx, flatTypeModel.Id, custom.FLATTYPECHARGE, uft.Price)
+		return priceHistoryUtil.AddNewPrice()
 	})
 }
 
