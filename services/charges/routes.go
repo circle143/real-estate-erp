@@ -37,8 +37,8 @@ func (s *chargesService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/", s.addNewOtherCharge)
-		router.Post("/{chargeId}/price", s.updateOtherChargePrice)
-		router.Post("/{chargeId}/details", s.updateOtherChargeDetails)
+		router.Patch("/{chargeId}/price", s.updateOtherChargePrice)
+		router.Patch("/{chargeId}/details", s.updateOtherChargeDetails)
 	})
 	other.Group(func(router chi.Router) {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
