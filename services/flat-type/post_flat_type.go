@@ -16,7 +16,6 @@ type hCreateFlatType struct {
 	ReraCarpetArea float64 `validate:"required"`
 	BalconyArea    float64 `validate:"required"`
 	SuperArea      float64 `validate:"required"`
-	Price          float64 `validate:"required"`
 }
 
 func (cft *hCreateFlatType) getBuiltUpArea() float64 {
