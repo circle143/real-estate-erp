@@ -86,3 +86,34 @@ func (s *chargesService) getAllOtherCharges(w http.ResponseWriter, r *http.Reque
 
 	payload.EncodeJSON(w, http.StatusOK, response)
 }
+
+type hGetAllOtherOptionalCharges struct{}
+
+func (h *hGetAllOtherOptionalCharges) execute(db *gorm.DB, orgId, society string) (*[]models.OtherCharge, error) {
+	var charges []models.OtherCharge
+	query := db.Where("org_id = ? and society_id = ? and optional = true", orgId, society).Order("created_at DESC")
+
+	result := query.Find(&charges)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &charges, nil
+}
+
+func (s *chargesService) getAllOtherOptionalCharges(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+
+	tower := hGetAllOtherOptionalCharges{}
+	res, err := tower.execute(s.db, orgId, societyRera)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}

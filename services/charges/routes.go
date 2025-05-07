@@ -45,6 +45,7 @@ func (s *chargesService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Get("/", s.getAllOtherCharges)
+		router.Get("/optional", s.getAllOtherOptionalCharges)
 	})
 
 	mux.Mount("/preference-location", location)
