@@ -25,7 +25,7 @@ func IsSameSociety(societyInfoService ISocietyInfo, orgId, societyRera string) e
 
 	if societyInfo.SocietyRera != societyRera || societyInfo.OrgId.String() != orgId {
 		return &custom.RequestError{
-			Status:  http.StatusBadRequest,
+			Status:  http.StatusForbidden,
 			Message: "Society mismatch.",
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"circledigital.in/real-state-erp/services/flat"
 	flatType "circledigital.in/real-state-erp/services/flat-type"
 	"circledigital.in/real-state-erp/services/organization"
+	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
 	"circledigital.in/real-state-erp/services/society"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
@@ -29,6 +30,7 @@ var services = []serviceFactory{
 	flat.CreateFlatService,
 	customer.CreateCustomerService,
 	charges.CreateChargesService,
+	paymentPlan.CreatePaymentPlanService,
 }
 
 // handle400 returns custom responses for not found routes and not allowed methods
