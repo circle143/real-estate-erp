@@ -1,0 +1,23 @@
+package models
+
+import (
+	"circledigital.in/real-state-erp/utils/custom"
+	"github.com/google/uuid"
+	"time"
+)
+
+type PaymentPlan struct {
+	Id             uuid.UUID                   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SocietyId      string                      `gorm:"not null;index" json:"societyId"`
+	OrgId          uuid.UUID                   `gorm:"not null;index" json:"orgId"`
+	Society        *Society                    `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
+	Scope          custom.PaymentPlanScope     `gorm:"not null" json:"scope"`
+	ConditionType  custom.PaymentPlanCondition `gorm:"not null" json:"conditionType"`
+	ConditionValue int                         `json:"conditionValue,omitempty"`
+	CreatedAt      time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
+	UpdatedAt      time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
+}
+
+func (u PaymentPlan) GetCreatedAt() time.Time {
+	return u.CreatedAt
+}
