@@ -42,10 +42,11 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 	}
 
 	return db.Transaction(func(tx *gorm.DB) error {
+
 		flatModel := models.Flat{
 			Id: uuid.MustParse(flatId),
 		}
-		err := tx.First(&flatModel).Preload("FlatType").Error
+		err := tx.Preload("FlatType").First(&flatModel).Error
 		if err != nil {
 			return err
 		}
@@ -54,7 +55,7 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		// get required preference location charges
 		var locationCharges []models.PreferenceLocationCharge
 		locationChargeQuery := tx.
-			Where("org_id = ? and society = ? and disabled = false", orgId, society).
+			Where("org_id = ? and society_id = ? and disable = false", orgId, society).
 			Where("type = ? and floor = ?", custom.FLOOR, flatModel.FloorNumber)
 		if flatModel.Facing == custom.SPECIAL {
 			locationChargeQuery = locationChargeQuery.Or("type = ?", custom.FACING)
@@ -68,7 +69,7 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		// other charges
 		var otherCharges []models.OtherCharge
 		err = tx.
-			Where("org_id = ? and society = ? and disabled = false and optional = false", orgId, society).
+			Where("org_id = ? and society_id = ? and disable = false and optional = false", orgId, society).
 			Find(&otherCharges).Error
 		if err != nil {
 			return err
@@ -77,7 +78,7 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		// optional charges
 		var optionalCharges []models.OtherCharge
 		err = tx.
-			Where("org_id = ? and society = ? and disabled = false and optional = true", orgId, society).
+			Where("org_id = ? and society_id = ? and disable = false and optional = true", orgId, society).
 			Where("id in ?", ac.OptionalCharges).
 			Find(&optionalCharges).Error
 		if err != nil {
@@ -90,10 +91,11 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 
 		// basic cost
 		basicCostDetail := models.PriceBreakdownDetail{
-			Type:    "basic-cost",
-			Price:   ac.BasicCost,
-			Summary: "Basic flat cost",
-			Total:   superArea * ac.BasicCost,
+			Type:      "basic-cost",
+			Price:     ac.BasicCost,
+			Summary:   "Basic flat cost",
+			Total:     superArea * ac.BasicCost,
+			SuperArea: superArea,
 		}
 		totalPrice += basicCostDetail.Total
 		priceBreakdowns = append(priceBreakdowns, basicCostDetail)
@@ -101,10 +103,11 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		// Add location charges
 		for _, charge := range locationCharges {
 			detail := models.PriceBreakdownDetail{
-				Type:    "preference-location",
-				Price:   charge.Price,
-				Summary: charge.Summary,
-				Total:   superArea * charge.Price,
+				Type:      "preference-location",
+				Price:     charge.Price,
+				Summary:   charge.Summary,
+				Total:     superArea * charge.Price,
+				SuperArea: superArea,
 			}
 			totalPrice += detail.Total
 			priceBreakdowns = append(priceBreakdowns, detail)
@@ -114,9 +117,10 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 		processOtherCharges := func(charges []models.OtherCharge) {
 			for _, charge := range charges {
 				detail := models.PriceBreakdownDetail{
-					Type:    "other",
-					Price:   charge.Price,
-					Summary: charge.Summary,
+					Type:      "other",
+					Price:     charge.Price,
+					Summary:   charge.Summary,
+					SuperArea: superArea,
 				}
 
 				if charge.Recurring && charge.AdvanceMonths >= 1 {
@@ -140,6 +144,15 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 
 		processOtherCharges(otherCharges)
 		processOtherCharges(optionalCharges)
+
+		//for i, pb := range priceBreakdowns {
+		//	fmt.Printf("Item %d:\n", i+1)
+		//	fmt.Printf("  Type:    %s\n", pb.Type)
+		//	fmt.Printf("  Price:   %.2f\n", pb.Price)
+		//	fmt.Printf("  Summary: %s\n", pb.Summary)
+		//	fmt.Printf("  SuperArea:   %.2f\n", pb.SuperArea)
+		//	fmt.Printf("  Total:   %.2f\n", pb.Total)
+		//}
 
 		saleModel := models.Sale{
 			FlatId:         uuid.MustParse(flatId),
