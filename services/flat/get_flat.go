@@ -6,6 +6,7 @@ import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
@@ -43,6 +44,41 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	if err != nil {
 		return nil, err
 	}
+
+	// get sale id
+	var saleIDs []uuid.UUID
+	for _, flat := range flatData {
+		if flat.SaleDetail != nil {
+			saleIDs = append(saleIDs, flat.SaleDetail.Id)
+		}
+	}
+
+	// get sale amount
+	var salePayments []models.SalePaid
+	if len(saleIDs) > 0 {
+		err := db.Model(&models.SalePaymentStatus{}).
+			Select("sale_id, SUM(amount) AS total_paid_amount").
+			Where("sale_id IN ?", saleIDs).
+			Group("sale_id").
+			Scan(&salePayments).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// map sale id -> paid amount
+	totalsMap := make(map[uuid.UUID]float64)
+	for _, sp := range salePayments {
+		totalsMap[sp.SaleId] = sp.TotalPaidAmount
+	}
+
+	// add in flatData
+	for i := range flatData {
+		if flatData[i].SaleDetail != nil {
+			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+		}
+	}
+
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
@@ -99,6 +135,40 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 		return nil, result.Error
 	}
 
+	// get sale id
+	var saleIDs []uuid.UUID
+	for _, flat := range flatData {
+		if flat.SaleDetail != nil {
+			saleIDs = append(saleIDs, flat.SaleDetail.Id)
+		}
+	}
+
+	// get sale amount
+	var salePayments []models.SalePaid
+	if len(saleIDs) > 0 {
+		err := db.Model(&models.SalePaymentStatus{}).
+			Select("sale_id, SUM(amount) AS total_paid_amount").
+			Where("sale_id IN ?", saleIDs).
+			Group("sale_id").
+			Scan(&salePayments).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// map sale id -> paid amount
+	totalsMap := make(map[uuid.UUID]float64)
+	for _, sp := range salePayments {
+		totalsMap[sp.SaleId] = sp.TotalPaidAmount
+	}
+
+	// add in flatData
+	for i := range flatData {
+		if flatData[i].SaleDetail != nil {
+			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+		}
+	}
+
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
@@ -111,6 +181,87 @@ func (fs *flatService) getAllTowerFlats(w http.ResponseWriter, r *http.Request) 
 
 	flat := hGetAllTowerFlats{}
 	res, err := flat.execute(fs.db, orgId, societyRera, towerId, cursor, filter)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
+
+type hGetSocietyFlatByName struct{}
+
+func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, cursor string) (*custom.PaginatedData, error) {
+	var flatData []models.Flat
+	query := db.
+		Joins("JOIN towers ON towers.id = flats.tower_id").
+		Where("towers.society_id = ? AND towers.org_id = ? and flats.name like ?", society, orgId, name+"%").
+		Preload("SaleDetail").
+		Preload("SaleDetail.Customers").
+		Order("flats.created_at DESC").
+		Limit(custom.LIMIT + 1)
+
+	if strings.TrimSpace(cursor) != "" {
+		decodedCursor, err := common.DecodeCursor(cursor)
+		if err == nil {
+			query = query.Where("flats.created_at < ?", decodedCursor)
+		}
+	}
+
+	result := query.Find(&flatData)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// get sale id
+	var saleIDs []uuid.UUID
+	for _, flat := range flatData {
+		if flat.SaleDetail != nil {
+			saleIDs = append(saleIDs, flat.SaleDetail.Id)
+		}
+	}
+
+	// get sale amount
+	var salePayments []models.SalePaid
+	if len(saleIDs) > 0 {
+		err := db.Model(&models.SalePaymentStatus{}).
+			Select("sale_id, SUM(amount) AS total_paid_amount").
+			Where("sale_id IN ?", saleIDs).
+			Group("sale_id").
+			Scan(&salePayments).Error
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// map sale id -> paid amount
+	totalsMap := make(map[uuid.UUID]float64)
+	for _, sp := range salePayments {
+		totalsMap[sp.SaleId] = sp.TotalPaidAmount
+	}
+
+	// add in flatData
+	for i := range flatData {
+		if flatData[i].SaleDetail != nil {
+			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+		}
+	}
+
+	return common.CreatePaginatedResponse(&flatData), nil
+}
+
+func (fs *flatService) getSocietyFlatByName(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	name := r.URL.Query().Get("name")
+	societyRera := chi.URLParam(r, "society")
+	cursor := r.URL.Query().Get("cursor")
+
+	flat := hGetSocietyFlatByName{}
+	res, err := flat.execute(fs.db, orgId, societyRera, name, cursor)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
