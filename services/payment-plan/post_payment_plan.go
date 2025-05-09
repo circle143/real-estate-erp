@@ -15,10 +15,11 @@ import (
 type hCreatePaymentPlan struct {
 	Scope          string `validate:"required"`
 	ConditionType  string `validate:"required"`
+	Amount         int    `validate:"required,gt=0,lte=100"`
 	ConditionValue int
 }
 
-func (h *hCreatePaymentPlan) validate() error {
+func (h *hCreatePaymentPlan) validate(db *gorm.DB, orgId, society string) error {
 	scope := custom.PaymentPlanScope(h.Scope)
 	if !scope.IsValid() {
 		return &custom.RequestError{
@@ -42,11 +43,28 @@ func (h *hCreatePaymentPlan) validate() error {
 		}
 	}
 
+	// check amount total
+	var total int
+	err := db.Model(&models.PaymentPlan{}).
+		Select("COALESCE(SUM(amount), 0)").
+		Where("society_id = ? AND org_id = ?", society, orgId).
+		Scan(&total).Error
+	if err != nil {
+		return err
+	}
+
+	if total+h.Amount > 100 {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Amount exceeds 100%",
+		}
+	}
+
 	return nil
 }
 
 func (h *hCreatePaymentPlan) execute(db *gorm.DB, orgId, society string) (*models.PaymentPlan, error) {
-	err := h.validate()
+	err := h.validate(db, orgId, society)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +75,7 @@ func (h *hCreatePaymentPlan) execute(db *gorm.DB, orgId, society string) (*model
 		Scope:          custom.PaymentPlanScope(h.Scope),
 		ConditionType:  custom.PaymentPlanCondition(h.ConditionType),
 		ConditionValue: h.ConditionValue,
+		Amount:         h.Amount,
 	}
 
 	err = db.Create(&paymentPlanModel).Error
