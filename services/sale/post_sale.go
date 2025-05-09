@@ -12,13 +12,13 @@ import (
 	"net/http"
 )
 
-type hAddCustomerToFlat struct {
+type hCreateSale struct {
 	Details         []customerDetails `validate:"required,min=1,dive"`
 	BasicCost       float64           `validate:"required"`
 	OptionalCharges []string
 }
 
-func (ac *hAddCustomerToFlat) validate(db *gorm.DB, orgId, society, flatId string) error {
+func (ac *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
 	societyInfoService := flat.CreateFlatSocietyInfoService(db, uuid.MustParse(flatId))
 	err := common.IsSameSociety(societyInfoService, orgId, society)
 	if err != nil {
@@ -35,7 +35,7 @@ func (ac *hAddCustomerToFlat) validate(db *gorm.DB, orgId, society, flatId strin
 	return nil
 }
 
-func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string) error {
+func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error {
 	err := ac.validate(db, orgId, society, flatId)
 	if err != nil {
 		return err
@@ -197,17 +197,17 @@ func (ac *hAddCustomerToFlat) execute(db *gorm.DB, orgId, society, flatId string
 	})
 }
 
-func (cs *customerService) addCustomerToFlat(w http.ResponseWriter, r *http.Request) {
+func (s *saleService) createSale(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 	flatId := chi.URLParam(r, "flat")
 
-	reqBody := payload.ValidateAndDecodeRequest[hAddCustomerToFlat](w, r)
+	reqBody := payload.ValidateAndDecodeRequest[hCreateSale](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	err := reqBody.execute(cs.db, orgId, societyRera, flatId)
+	err := reqBody.execute(s.db, orgId, societyRera, flatId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

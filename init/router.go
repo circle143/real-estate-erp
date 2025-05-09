@@ -28,7 +28,7 @@ var services = []serviceFactory{
 	flatType.CreateFlatTypeService,
 	tower.CreateTowerService,
 	flat.CreateFlatService,
-	sale.CreateCustomerService,
+	sale.CreateSaleService,
 	charges.CreateChargesService,
 	paymentPlan.CreatePaymentPlanService,
 }

@@ -5,11 +5,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (cs *customerService) GetBasePath() string {
-	return "/society/{society}/flat/{flat}/sale"
+func (s *saleService) GetBasePath() string {
+	return "/society/{society}/sale"
 }
 
-func (cs *customerService) GetRoutes() *chi.Mux {
+func (s *saleService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
 
@@ -17,7 +17,8 @@ func (cs *customerService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", cs.addCustomerToFlat)
+		router.Post("/flat/{flat}", s.createSale)
+		router.Get("/payment-breakdown/{saleId}", s.getSalePaymentBreakDown)
 		//router.Delete("/{customer}", cs.addCustomerToFlat)
 		//router.Patch("/{customer}", cs.updateCustomerDetails)
 	})

@@ -8,12 +8,12 @@ import (
 	"strings"
 )
 
-type customerService struct {
+type saleService struct {
 	db *gorm.DB
 }
 
-func CreateCustomerService(app common.IApp) common.IService {
-	return &customerService{
+func CreateSaleService(app common.IApp) common.IService {
+	return &saleService{
 		db: app.GetDBClient(),
 	}
 }
