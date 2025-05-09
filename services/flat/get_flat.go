@@ -2,6 +2,7 @@ package flat
 
 import (
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/services/sale"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
@@ -279,9 +280,19 @@ func (s *flatService) getSocietyFlatByName(w http.ResponseWriter, r *http.Reques
 
 type hGetSalePaymentBreakDown struct{}
 
-func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, saleId string) (*[]models.PaymentPlan, error) {
+func (h *hGetSalePaymentBreakDown) validate(db *gorm.DB, orgId, society, saleId string) error {
+	saleSocietyInfo := sale.CreateSaleSocietyInfoService(db, uuid.MustParse(saleId))
+	return common.IsSameSociety(saleSocietyInfo, orgId, society)
+}
+
+func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId string) (*[]models.PaymentPlan, error) {
+	err := h.validate(db, orgId, society, saleId)
+	if err != nil {
+		return nil, err
+	}
+
 	var paymentPlans []models.PaymentPlan
-	err := db.
+	err = db.
 		Joins("JOIN flats ON flats.id = sales.flat_id").
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Joins("JOIN tower_payment_statuses tps ON tps.tower_id = towers.id").
@@ -321,10 +332,12 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, saleId string) (*[]model
 }
 
 func (s *flatService) getSalePaymentBreakDown(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	saleId := chi.URLParam(r, "saleId")
+	societyRera := chi.URLParam(r, "society")
 
 	details := hGetSalePaymentBreakDown{}
-	res, err := details.execute(s.db, saleId)
+	res, err := details.execute(s.db, orgId, societyRera, saleId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
