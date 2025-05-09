@@ -29,6 +29,7 @@ func (fs *flatService) GetRoutes() *chi.Mux {
 
 		router.Get("/", fs.getAllSocietyFlats)
 		router.Get("/tower/{tower}", fs.getAllTowerFlats)
+		router.Get("/search", fs.getSocietyFlatByName)
 	})
 
 	return mux
