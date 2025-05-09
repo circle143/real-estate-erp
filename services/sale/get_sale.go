@@ -82,3 +82,52 @@ func (s *saleService) getSalePaymentBreakDown(w http.ResponseWriter, r *http.Req
 
 	payload.EncodeJSON(w, http.StatusOK, response)
 }
+
+type hGetSocietySalesReport struct{}
+
+func (h *hGetSocietySalesReport) execute(db *gorm.DB, orgId, society string) (*models.PaymentReport, error) {
+	var total float64
+	err := db.Model(&models.Sale{}).
+		Where("org_id = ? AND society_id = ?", orgId, society).
+		Select("COALESCE(SUM(total_price), 0)"). // Use COALESCE to avoid null
+		Scan(&total).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	var paid float64
+	err = db.
+		Joins("JOIN sales ON sales.id = sale_payment_statuses.sale_id").
+		Model(&models.SalePaymentStatus{}).
+		Where("sales.society_id = ? AND sales.org_id = ?", society, orgId).
+		Select("COALESCE(SUM(sale_payment_statuses.amount), 0)").
+		Scan(&paid).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.PaymentReport{
+		Total:   total,
+		Paid:    paid,
+		Pending: total - paid,
+	}, nil
+}
+
+func (s *saleService) getSocietySalesReport(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+
+	report := hGetSocietySalesReport{}
+	res, err := report.execute(s.db, orgId, societyRera)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}

@@ -20,6 +20,7 @@ func (s *saleService) GetRoutes() *chi.Mux {
 		router.Post("/flat/{flat}", s.createSale)
 		router.Post("/{saleId}/add-payment-installment/{paymentId}", s.addPaymentInstallmentForSale)
 		router.Get("/{saleId}/payment-breakdown", s.getSalePaymentBreakDown)
+		router.Get("/report", s.getSocietySalesReport)
 		//router.Delete("/{customer}", cs.addCustomerToFlat)
 		//router.Patch("/{customer}", cs.updateCustomerDetails)
 	})

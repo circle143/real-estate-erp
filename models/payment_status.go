@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type PaymentReport struct {
+	Total   float64 `json:"total"`
+	Paid    float64 `json:"paid"`
+	Pending float64 `json:"pending"`
+}
+
 type TowerPaymentStatus struct {
 	PaymentId   uuid.UUID    `gorm:"primaryKey" json:"paymentId"`
 	TowerId     uuid.UUID    `gorm:"primaryKey" json:"towerId"`
