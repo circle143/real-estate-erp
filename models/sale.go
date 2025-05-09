@@ -18,6 +18,7 @@ type Sale struct {
 	Society        *Society              `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
 	TotalPrice     float64               `gorm:"not null" json:"totalPrice"`
 	Paid           float64               `gorm:"-" json:"paid"` // used to compute paid amount during req lifecycle
+	Remaining      float64               `gorm:"-" json:"remaining"`
 	PriceBreakdown PriceBreakdownDetails `gorm:"not null;type:jsonb" json:"priceBreakdown"`
 	CreatedAt      time.Time             `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`

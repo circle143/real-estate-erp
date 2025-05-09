@@ -76,6 +76,7 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
 		}
 	}
 
@@ -166,6 +167,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
 		}
 	}
 
@@ -248,6 +250,7 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
 		}
 	}
 
