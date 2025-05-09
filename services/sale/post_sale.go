@@ -3,9 +3,11 @@ package sale
 import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/flat"
+	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
+	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -216,6 +218,102 @@ func (s *saleService) createSale(w http.ResponseWriter, r *http.Request) {
 	var response custom.JSONResponse
 	response.Error = false
 	response.Message = "Successfully created sale record."
+
+	payload.EncodeJSON(w, http.StatusCreated, response)
+}
+
+type hAddPaymentInstallmentForSale struct{}
+
+func (h *hAddPaymentInstallmentForSale) validate(db *gorm.DB, orgId, society, saleId, paymentId string) error {
+	// validate payment permission
+	paymentSocietyInfoService := paymentPlan.CreatePaymentPlanSocietyInfoService(db, uuid.MustParse(paymentId))
+	err := common.IsSameSociety(paymentSocietyInfoService, orgId, society)
+	if err != nil {
+		return err
+	}
+
+	saleSocietyInfo := CreateSaleSocietyInfoService(db, uuid.MustParse(saleId))
+	err = common.IsSameSociety(saleSocietyInfo, orgId, society)
+	if err != nil {
+		return err
+	}
+
+	// check if payment is active for the tower
+	var status models.TowerPaymentStatus
+	err = db.
+		Joins("JOIN flats ON flats.tower_id = tower_payment_statuses.tower_id").
+		Joins("JOIN sales ON sales.flat_id = flats.id").
+		Where("sales.id = ?", saleId).
+		First(&status).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Payment plan is not active for the flat.",
+			}
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (h *hAddPaymentInstallmentForSale) execute(db *gorm.DB, orgId, society, saleId, paymentId string) (*models.SalePaymentStatus, error) {
+	err := h.validate(db, orgId, society, saleId, paymentId)
+	if err != nil {
+		return nil, err
+	}
+
+	// calc payment
+	plan := models.PaymentPlan{
+		Id: uuid.MustParse(paymentId),
+	}
+	err = db.
+		First(&plan).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// get sale record
+	sale := models.Sale{
+		Id: uuid.MustParse(saleId),
+	}
+	err = db.
+		First(&sale).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// amount to be paid for this plan
+	amount := sale.TotalPrice * float64(plan.Amount) / 100
+	salePaymentModel := models.SalePaymentStatus{
+		PaymentId: uuid.MustParse(paymentId),
+		SaleId:    uuid.MustParse(saleId),
+		Amount:    amount,
+	}
+
+	err = db.Create(&salePaymentModel).Error
+	return &salePaymentModel, err
+}
+
+func (s *saleService) addPaymentInstallmentForSale(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	saleId := chi.URLParam(r, "saleId")
+	paymentId := chi.URLParam(r, "paymentId")
+
+	addPayment := hAddPaymentInstallmentForSale{}
+	res, err := addPayment.execute(s.db, orgId, societyRera, saleId, paymentId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Successfully added installment for the sale."
+	response.Data = res
 
 	payload.EncodeJSON(w, http.StatusCreated, response)
 }

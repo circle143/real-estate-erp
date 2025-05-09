@@ -18,7 +18,8 @@ func (s *saleService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/flat/{flat}", s.createSale)
-		router.Get("/payment-breakdown/{saleId}", s.getSalePaymentBreakDown)
+		router.Post("/{saleId}/add-payment-installment/{paymentId}", s.addPaymentInstallmentForSale)
+		router.Get("/{saleId}/payment-breakdown", s.getSalePaymentBreakDown)
 		//router.Delete("/{customer}", cs.addCustomerToFlat)
 		//router.Patch("/{customer}", cs.updateCustomerDetails)
 	})
