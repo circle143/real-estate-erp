@@ -17,6 +17,7 @@ type PaymentPlan struct {
 	ConditionValue int                         `json:"conditionValue,omitempty"`
 	Amount         int                         `gorm:"not null" json:"amount"`
 	Active         *bool                       `gorm:"-" json:"active,omitempty"`
+	AmountPaid     *float64                    `gorm:"-" json:"amountPaid,omitempty"`
 	Paid           *bool                       `gorm:"-" json:"paid,omitempty"` // used by flat payment breakdown
 	CreatedAt      time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`

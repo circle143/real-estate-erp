@@ -302,17 +302,18 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, saleId string) (*[]model
 		return nil, err
 	}
 
-	// Create a lookup map for paid PaymentIds
-	paidMap := make(map[uuid.UUID]struct{}, len(statuses))
+	// Create a lookup map for PaymentId → Amount
+	paidAmountMap := make(map[uuid.UUID]float64, len(statuses))
 	for _, s := range statuses {
-		paidMap[s.PaymentId] = struct{}{}
+		paidAmountMap[s.PaymentId] = s.Amount
 	}
 
-	// Set Paid = true where applicable
+	// Set Paid = true and add amount
 	for i, p := range paymentPlans {
-		if _, ok := paidMap[p.Id]; ok {
+		if amt, ok := paidAmountMap[p.Id]; ok {
 			value := true
 			paymentPlans[i].Paid = &value
+			paymentPlans[i].AmountPaid = &amt
 		}
 	}
 
