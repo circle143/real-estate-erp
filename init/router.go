@@ -2,11 +2,11 @@ package init
 
 import (
 	"circledigital.in/real-state-erp/services/charges"
-	"circledigital.in/real-state-erp/services/customer"
 	"circledigital.in/real-state-erp/services/flat"
 	flatType "circledigital.in/real-state-erp/services/flat-type"
 	"circledigital.in/real-state-erp/services/organization"
 	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
+	"circledigital.in/real-state-erp/services/sale"
 	"circledigital.in/real-state-erp/services/society"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
@@ -28,7 +28,7 @@ var services = []serviceFactory{
 	flatType.CreateFlatTypeService,
 	tower.CreateTowerService,
 	flat.CreateFlatService,
-	customer.CreateCustomerService,
+	sale.CreateCustomerService,
 	charges.CreateChargesService,
 	paymentPlan.CreatePaymentPlanService,
 }

@@ -1,4 +1,4 @@
-package customer
+package sale
 
 import (
 	"circledigital.in/real-state-erp/utils/middleware"
@@ -6,7 +6,7 @@ import (
 )
 
 func (cs *customerService) GetBasePath() string {
-	return "/society/{society}/flat/{flat}/customer"
+	return "/society/{society}/flat/{flat}/sale"
 }
 
 func (cs *customerService) GetRoutes() *chi.Mux {
