@@ -12,10 +12,12 @@ type PaymentPlan struct {
 	OrgId          uuid.UUID                   `gorm:"not null;index" json:"orgId"`
 	Society        *Society                    `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
 	Scope          custom.PaymentPlanScope     `gorm:"not null" json:"scope"`
+	Summary        string                      `gorm:"not null" json:"summary"`
 	ConditionType  custom.PaymentPlanCondition `gorm:"not null" json:"conditionType"`
 	ConditionValue int                         `json:"conditionValue,omitempty"`
 	Amount         int                         `gorm:"not null" json:"amount"`
 	Active         *bool                       `gorm:"-" json:"active,omitempty"`
+	Paid           *bool                       `gorm:"-" json:"paid,omitempty"` // used by flat payment breakdown
 	CreatedAt      time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
 }

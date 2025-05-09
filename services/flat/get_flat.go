@@ -83,14 +83,14 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
-func (fs *flatService) getAllSocietyFlats(w http.ResponseWriter, r *http.Request) {
+func (s *flatService) getAllSocietyFlats(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	cursor := r.URL.Query().Get("cursor")
 	filter := r.URL.Query().Get("filter")
 	societyRera := chi.URLParam(r, "society")
 
 	flat := hGetAllSocietyFlats{}
-	res, err := flat.execute(fs.db, orgId, societyRera, cursor, filter)
+	res, err := flat.execute(s.db, orgId, societyRera, cursor, filter)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -174,7 +174,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
-func (fs *flatService) getAllTowerFlats(w http.ResponseWriter, r *http.Request) {
+func (s *flatService) getAllTowerFlats(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	cursor := r.URL.Query().Get("cursor")
 	filter := r.URL.Query().Get("filter")
@@ -182,7 +182,7 @@ func (fs *flatService) getAllTowerFlats(w http.ResponseWriter, r *http.Request) 
 	towerId := chi.URLParam(r, "tower")
 
 	flat := hGetAllTowerFlats{}
-	res, err := flat.execute(fs.db, orgId, societyRera, towerId, cursor, filter)
+	res, err := flat.execute(s.db, orgId, societyRera, towerId, cursor, filter)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -257,14 +257,73 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	return common.CreatePaginatedResponse(&flatData), nil
 }
 
-func (fs *flatService) getSocietyFlatByName(w http.ResponseWriter, r *http.Request) {
+func (s *flatService) getSocietyFlatByName(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	name := r.URL.Query().Get("name")
 	societyRera := chi.URLParam(r, "society")
 	cursor := r.URL.Query().Get("cursor")
 
 	flat := hGetSocietyFlatByName{}
-	res, err := flat.execute(fs.db, orgId, societyRera, name, cursor)
+	res, err := flat.execute(s.db, orgId, societyRera, name, cursor)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
+
+type hGetSalePaymentBreakDown struct{}
+
+func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, saleId string) (*[]models.PaymentPlan, error) {
+	var paymentPlans []models.PaymentPlan
+	err := db.
+		Joins("JOIN flats ON flats.id = sales.flat_id").
+		Joins("JOIN towers ON towers.id = flats.tower_id").
+		Joins("JOIN tower_payment_statuses tps ON tps.tower_id = towers.id").
+		Joins("JOIN payment_plans pp ON pp.id = tps.payment_id").
+		Model(&models.PaymentPlan{}).
+		Where("sales.id = ?", saleId).
+		Select("pp.*").
+		Scan(&paymentPlans).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var statuses []models.SalePaymentStatus
+	err = db.
+		Where("sale_id = ?", saleId).
+		Find(&statuses).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a lookup map for paid PaymentIds
+	paidMap := make(map[uuid.UUID]struct{}, len(statuses))
+	for _, s := range statuses {
+		paidMap[s.PaymentId] = struct{}{}
+	}
+
+	// Set Paid = true where applicable
+	for i, p := range paymentPlans {
+		if _, ok := paidMap[p.Id]; ok {
+			value := true
+			paymentPlans[i].Paid = &value
+		}
+	}
+
+	return &paymentPlans, nil
+}
+
+func (s *flatService) getSalePaymentBreakDown(w http.ResponseWriter, r *http.Request) {
+	saleId := chi.URLParam(r, "saleId")
+
+	details := hGetSalePaymentBreakDown{}
+	res, err := details.execute(s.db, saleId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

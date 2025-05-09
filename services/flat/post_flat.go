@@ -89,7 +89,7 @@ func (cf *hCreateFlat) execute(db *gorm.DB, orgId, society string) (*models.Flat
 
 }
 
-func (fs *flatService) createNewFlat(w http.ResponseWriter, r *http.Request) {
+func (s *flatService) createNewFlat(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
@@ -98,7 +98,7 @@ func (fs *flatService) createNewFlat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	flat, err := reqBody.execute(fs.db, orgId, societyRera)
+	flat, err := reqBody.execute(s.db, orgId, societyRera)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

@@ -13,6 +13,7 @@ import (
 )
 
 type hCreatePaymentPlan struct {
+	Summary        string `validate:"required"`
 	Scope          string `validate:"required"`
 	ConditionType  string `validate:"required"`
 	Amount         int    `validate:"required,gt=0,lte=100"`
@@ -76,6 +77,7 @@ func (h *hCreatePaymentPlan) execute(db *gorm.DB, orgId, society string) (*model
 		ConditionType:  custom.PaymentPlanCondition(h.ConditionType),
 		ConditionValue: h.ConditionValue,
 		Amount:         h.Amount,
+		Summary:        h.Summary,
 	}
 
 	err = db.Create(&paymentPlanModel).Error

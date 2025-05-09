@@ -29,14 +29,14 @@ func (df *hDeleteFlat) execute(db *gorm.DB, orgId, societyRera, flatId string) e
 	}).Delete(&models.Flat{}).Error
 }
 
-func (fs *flatService) deleteFlat(w http.ResponseWriter, r *http.Request) {
+func (s *flatService) deleteFlat(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	flatId := chi.URLParam(r, "flat")
 	societyRera := chi.URLParam(r, "society")
 
 	flat := hDeleteFlat{}
 
-	err := flat.execute(fs.db, orgId, societyRera, flatId)
+	err := flat.execute(s.db, orgId, societyRera, flatId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

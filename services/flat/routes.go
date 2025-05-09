@@ -5,11 +5,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (fs *flatService) GetBasePath() string {
+func (s *flatService) GetBasePath() string {
 	return "/society/{society}/flat"
 }
 
-func (fs *flatService) GetRoutes() *chi.Mux {
+func (s *flatService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
 
@@ -18,8 +18,8 @@ func (fs *flatService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", fs.createNewFlat)
-		router.Delete("/{flat}", fs.deleteFlat)
+		router.Post("/", s.createNewFlat)
+		router.Delete("/{flat}", s.deleteFlat)
 	})
 
 	// org admin and user
@@ -27,9 +27,10 @@ func (fs *flatService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Get("/", fs.getAllSocietyFlats)
-		router.Get("/tower/{tower}", fs.getAllTowerFlats)
-		router.Get("/search", fs.getSocietyFlatByName)
+		router.Get("/", s.getAllSocietyFlats)
+		router.Get("/tower/{tower}", s.getAllTowerFlats)
+		router.Get("/search", s.getSocietyFlatByName)
+		router.Get("/payment-breakdown/{saleId}", s.getSalePaymentBreakDown)
 	})
 
 	return mux
