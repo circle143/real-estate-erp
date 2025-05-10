@@ -122,7 +122,26 @@ func (h *hMarkPaymentPlanActiveForTower) validate(db *gorm.DB, orgId, society, p
 
 	// validate tower permission
 	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, towerUUID)
-	return common.IsSameSociety(towerSocietyInfoService, orgId, society)
+	if err = common.IsSameSociety(towerSocietyInfoService, orgId, society); err != nil {
+		return err
+	}
+
+	// validate if the payment is for tower
+	plan := models.PaymentPlan{
+		Id: uuid.MustParse(paymentId),
+	}
+	err = db.Find(&plan).Error
+	if err != nil {
+		return err
+	}
+
+	if plan.Scope != custom.TOWER {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Selected payment plan can't be associated with tower.",
+		}
+	}
+	return nil
 }
 
 func (h *hMarkPaymentPlanActiveForTower) execute(db *gorm.DB, orgId, society, paymentId, towerId string) error {
