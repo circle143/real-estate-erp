@@ -57,7 +57,9 @@ type hGetTowerPaymentPlans struct{}
 func (h *hGetTowerPaymentPlans) execute(db *gorm.DB, orgId, society, towerId, cursor string) (*custom.PaginatedData, error) {
 	var paymentPlans []models.PaymentPlan
 
-	query := db.Where("org_id = ? and society_id = ?", orgId, society).Order("created_at DESC").Limit(custom.LIMIT + 1)
+	query := db.Where("org_id = ? and society_id = ?", orgId, society).
+		Where("scope = ?", custom.TOWER).
+		Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
 		decodedCursor, err := common.DecodeCursor(cursor)
 		if err == nil {
