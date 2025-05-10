@@ -24,6 +24,14 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
+	sale := models.Sale{
+		Id: uuid.MustParse(saleId),
+	}
+	err = db.Find(&sale).Error
+	if err != nil {
+		return nil, err
+	}
+
 	var paymentPlans []models.PaymentPlan
 	err = db.
 		Model(&models.PaymentPlan{}).
@@ -54,11 +62,16 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 
 	// Set Paid = true and add amount
 	for i, p := range paymentPlans {
+		value := false
+		var amount float64
 		if amt, ok := paidAmountMap[p.Id]; ok {
-			value := true
-			paymentPlans[i].Paid = &value
-			paymentPlans[i].AmountPaid = &amt
+			value = true
+			amount = amt
+		} else {
+			amount = sale.TotalPrice * float64(p.Amount) / 100
 		}
+		paymentPlans[i].Paid = &value
+		paymentPlans[i].AmountPaid = &amount
 	}
 
 	return &paymentPlans, nil
