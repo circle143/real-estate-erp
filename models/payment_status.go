@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -20,10 +21,10 @@ type TowerPaymentStatus struct {
 }
 
 type SalePaymentStatus struct {
-	PaymentId   uuid.UUID    `gorm:"primaryKey" json:"paymentId"`
-	SaleId      uuid.UUID    `gorm:"primaryKey" json:"saleId"`
-	PaymentPlan *PaymentPlan `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
-	Sale        *Sale        `gorm:"foreignKey:SaleId;not null" json:"sale,omitempty"`
-	Amount      float64      `gorm:"not null" json:"amount"`
-	CreatedAt   time.Time    `gorm:"autoCreateTime" json:"createdAt"`
+	PaymentId   uuid.UUID       `gorm:"primaryKey" json:"paymentId"`
+	SaleId      uuid.UUID       `gorm:"primaryKey" json:"saleId"`
+	PaymentPlan *PaymentPlan    `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
+	Sale        *Sale           `gorm:"foreignKey:SaleId;not null" json:"sale,omitempty"`
+	Amount      decimal.Decimal `gorm:"not null;type:numeric" json:"amount"`
+	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"createdAt"`
 }

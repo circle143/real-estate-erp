@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -41,7 +42,7 @@ func (h *hAddNewPreferenceLocationCharge) execute(db *gorm.DB, orgId, society st
 		Summary:   h.Summary,
 		Type:      custom.PreferenceLocationChargesType(h.Type),
 		Floor:     h.Floor,
-		Price:     h.Price,
+		Price:     decimal.NewFromFloat(h.Price),
 	}
 
 	// transaction to create preference location charge and update in price table
@@ -113,7 +114,7 @@ func (h *hAddNewOtherCharge) execute(db *gorm.DB, orgId, society string) (*model
 		Recurring:     h.Recurring,
 		Optional:      h.Optional,
 		AdvanceMonths: h.AdvanceMonths,
-		Price:         h.Price,
+		Price:         decimal.NewFromFloat(h.Price),
 		Fixed:         h.Fixed,
 	}
 

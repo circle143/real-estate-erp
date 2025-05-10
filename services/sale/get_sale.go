@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 	"time"
@@ -80,7 +81,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	}
 
 	// Create a lookup map for PaymentId → Amount
-	paidAmountMap := make(map[uuid.UUID]float64, len(statuses))
+	paidAmountMap := make(map[uuid.UUID]decimal.Decimal, len(statuses))
 	for _, s := range statuses {
 		paidAmountMap[s.PaymentId] = s.Amount
 	}
@@ -88,12 +89,13 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	// Set Paid = true and add amount
 	for i, p := range paymentPlans {
 		value := false
-		var amount float64
+		var amount decimal.Decimal
 		if amt, ok := paidAmountMap[p.Id]; ok {
 			value = true
 			amount = amt
 		} else {
-			amount = sale.TotalPrice * float64(p.Amount) / 100
+			percent := decimal.NewFromInt(int64(p.Amount)) // Convert int to decimal
+			amount = sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
 		}
 		paymentPlans[i].Paid = &value
 		paymentPlans[i].AmountPaid = &amount

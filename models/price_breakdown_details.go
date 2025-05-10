@@ -4,14 +4,15 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/shopspring/decimal"
 )
 
 type PriceBreakdownDetail struct {
-	Type      string  `json:"type"`
-	Price     float64 `json:"price"`
-	Summary   string  `json:"summary"`
-	Total     float64 `json:"total"`
-	SuperArea float64 `json:"superArea"`
+	Type      string          `json:"type"`
+	Price     decimal.Decimal `json:"price"`
+	Summary   string          `json:"summary"`
+	Total     decimal.Decimal `json:"total"`
+	SuperArea decimal.Decimal `json:"superArea"`
 }
 
 type PriceBreakdownDetails []PriceBreakdownDetail

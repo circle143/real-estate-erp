@@ -4,6 +4,7 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -12,7 +13,7 @@ type IPriceHistoryUtil interface {
 	AddNewPrice() error     // handles populating active till and adding new price
 }
 
-func CreatePriceUtil(db *gorm.DB, chargeId uuid.UUID, chargeType custom.PriceChargeType, price float64) IPriceHistoryUtil {
+func CreatePriceUtil(db *gorm.DB, chargeId uuid.UUID, chargeType custom.PriceChargeType, price decimal.Decimal) IPriceHistoryUtil {
 	if !chargeType.IsValid() {
 		return nil
 	}
@@ -29,7 +30,7 @@ type priceHistoryUtil struct {
 	db         *gorm.DB
 	chargeId   uuid.UUID
 	chargeType string
-	price      float64
+	price      decimal.Decimal
 }
 
 func (p *priceHistoryUtil) AddInitialPrice() error {

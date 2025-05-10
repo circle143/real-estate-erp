@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -19,17 +20,18 @@ func (h *hUpdatePreferenceLocationChargePrice) execute(db *gorm.DB, orgId, socie
 	chargeModel := models.PreferenceLocationCharge{
 		Id: uuid.MustParse(chargeId),
 	}
+	price := decimal.NewFromFloat(h.Price)
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		// update price in db
 		err := tx.Model(&chargeModel).
 			Where("id = ? AND org_id = ? AND society_id = ?", chargeModel.Id, orgId, society).
-			Update("price", h.Price).Error
+			Update("price", price).Error
 		if err != nil {
 			return err
 		}
 
-		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.PREFERENCELOCATIONCHARGE, h.Price)
+		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.PREFERENCELOCATIONCHARGE, price)
 		return priceHistoryUtil.AddNewPrice()
 	})
 }
@@ -108,17 +110,18 @@ func (h *hUpdateOtherChargePrice) execute(db *gorm.DB, orgId, society, chargeId 
 	chargeModel := models.OtherCharge{
 		Id: uuid.MustParse(chargeId),
 	}
+	price := decimal.NewFromFloat(h.Price)
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		// update price in db
 		err := tx.Model(&chargeModel).
 			Where("id = ? AND org_id = ? AND society_id = ?", chargeModel.Id, orgId, society).
-			Update("price", h.Price).Error
+			Update("price", price).Error
 		if err != nil {
 			return err
 		}
 
-		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.OTHERCHARGE, h.Price)
+		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.OTHERCHARGE, price)
 		return priceHistoryUtil.AddNewPrice()
 	})
 }

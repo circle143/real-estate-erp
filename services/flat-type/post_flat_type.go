@@ -6,6 +6,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -18,8 +19,8 @@ type hCreateFlatType struct {
 	SuperArea      float64 `validate:"required"`
 }
 
-func (cft *hCreateFlatType) getBuiltUpArea() float64 {
-	return cft.ReraCarpetArea + cft.BalconyArea
+func (cft *hCreateFlatType) getBuiltUpArea() decimal.Decimal {
+	return decimal.NewFromFloat(cft.ReraCarpetArea).Add(decimal.NewFromFloat(cft.BalconyArea))
 }
 
 func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models.FlatType, error) {
@@ -28,10 +29,10 @@ func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models
 		SocietyId:      society,
 		Name:           cft.Name,
 		Accommodation:  cft.Accommodation,
-		ReraCarpetArea: cft.ReraCarpetArea,
-		BalconyArea:    cft.BalconyArea,
+		ReraCarpetArea: decimal.NewFromFloat(cft.ReraCarpetArea),
+		BalconyArea:    decimal.NewFromFloat(cft.BalconyArea),
 		BuiltUpArea:    cft.getBuiltUpArea(),
-		SuperArea:      cft.SuperArea,
+		SuperArea:      decimal.NewFromFloat(cft.SuperArea),
 	}
 
 	err := db.Create(&flatType).Error

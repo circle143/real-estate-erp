@@ -2,12 +2,13 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
 type SalePaid struct {
 	SaleId          uuid.UUID
-	TotalPaidAmount float64
+	TotalPaidAmount decimal.Decimal
 }
 
 type Sale struct {
@@ -16,9 +17,9 @@ type Sale struct {
 	SocietyId      string                `gorm:"not null;index" json:"societyId"`
 	OrgId          uuid.UUID             `gorm:"not null;index" json:"orgId"`
 	Society        *Society              `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
-	TotalPrice     float64               `gorm:"not null" json:"totalPrice"`
-	Paid           float64               `gorm:"-" json:"paid"` // used to compute paid amount during req lifecycle
-	Remaining      float64               `gorm:"-" json:"remaining"`
+	TotalPrice     decimal.Decimal       `gorm:"not null;type:numeric" json:"totalPrice"`
+	Paid           decimal.Decimal       `gorm:"-" json:"paid"` // used to compute paid amount during req lifecycle
+	Remaining      decimal.Decimal       `gorm:"-" json:"remaining"`
 	PriceBreakdown PriceBreakdownDetails `gorm:"not null;type:jsonb" json:"priceBreakdown"`
 	CreatedAt      time.Time             `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`

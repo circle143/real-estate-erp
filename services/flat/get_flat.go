@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
@@ -67,7 +68,7 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	}
 
 	// map sale id -> paid amount
-	totalsMap := make(map[uuid.UUID]float64)
+	totalsMap := make(map[uuid.UUID]decimal.Decimal)
 	for _, sp := range salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
@@ -76,7 +77,8 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
-			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			//flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice.Sub(totalsMap[flatData[i].SaleDetail.Id])
 		}
 	}
 
@@ -158,7 +160,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	}
 
 	// map sale id -> paid amount
-	totalsMap := make(map[uuid.UUID]float64)
+	totalsMap := make(map[uuid.UUID]decimal.Decimal)
 	for _, sp := range salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
@@ -167,7 +169,8 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
-			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			//flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice.Sub(totalsMap[flatData[i].SaleDetail.Id])
 		}
 	}
 
@@ -241,7 +244,7 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	}
 
 	// map sale id -> paid amount
-	totalsMap := make(map[uuid.UUID]float64)
+	totalsMap := make(map[uuid.UUID]decimal.Decimal)
 	for _, sp := range salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
@@ -250,7 +253,8 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	for i := range flatData {
 		if flatData[i].SaleDetail != nil {
 			flatData[i].SaleDetail.Paid = totalsMap[flatData[i].SaleDetail.Id]
-			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			//flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice - totalsMap[flatData[i].SaleDetail.Id]
+			flatData[i].SaleDetail.Remaining = flatData[i].SaleDetail.TotalPrice.Sub(totalsMap[flatData[i].SaleDetail.Id])
 		}
 	}
 

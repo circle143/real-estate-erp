@@ -10,6 +10,7 @@ import (
 	"errors"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -42,9 +43,9 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 	if err != nil {
 		return err
 	}
+	basicCost := decimal.NewFromFloat(ac.BasicCost)
 
 	return db.Transaction(func(tx *gorm.DB) error {
-
 		flatModel := models.Flat{
 			Id: uuid.MustParse(flatId),
 		}
@@ -57,10 +58,14 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		// get required preference location charges
 		var locationCharges []models.PreferenceLocationCharge
 		locationChargeQuery := tx.
-			Where("org_id = ? and society_id = ? and disable = false", orgId, society).
-			Where("type = ? and floor = ?", custom.FLOOR, flatModel.FloorNumber)
+			Where("org_id = ? and society_id = ? and disable = false", orgId, society)
 		if flatModel.Facing == custom.SPECIAL {
-			locationChargeQuery = locationChargeQuery.Or("type = ?", custom.FACING)
+			locationChargeQuery = locationChargeQuery.Where(
+				"(type = ? AND floor = ?) OR type = ?",
+				custom.FLOOR, flatModel.FloorNumber, custom.FACING,
+			)
+		} else {
+			locationChargeQuery = locationChargeQuery.Where("type = ? AND floor = ?", custom.FLOOR, flatModel.FloorNumber)
 		}
 
 		err = locationChargeQuery.Find(&locationCharges).Error
@@ -89,17 +94,20 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 
 		// price calculation
 		var priceBreakdowns []models.PriceBreakdownDetail
-		var totalPrice float64
+		totalPrice := decimal.NewFromInt(0)
 
 		// basic cost
 		basicCostDetail := models.PriceBreakdownDetail{
 			Type:      "basic-cost",
-			Price:     ac.BasicCost,
+			Price:     basicCost,
 			Summary:   "Basic flat cost",
-			Total:     superArea * ac.BasicCost,
+			Total:     superArea.Mul(basicCost),
 			SuperArea: superArea,
 		}
-		totalPrice += basicCostDetail.Total
+		totalPrice = totalPrice.Add(basicCostDetail.Total)
+		//log.Printf("total price: %v\n", totalPrice.String())
+		//log.Printf("basic cost detail: %v\n\n", basicCostDetail.Total.String())
+
 		priceBreakdowns = append(priceBreakdowns, basicCostDetail)
 
 		// Add location charges
@@ -108,10 +116,12 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 				Type:      "preference-location",
 				Price:     charge.Price,
 				Summary:   charge.Summary,
-				Total:     superArea * charge.Price,
+				Total:     superArea.Mul(charge.Price),
 				SuperArea: superArea,
 			}
-			totalPrice += detail.Total
+			totalPrice = totalPrice.Add(detail.Total)
+			//log.Printf("total price: %v\n", totalPrice.String())
+			//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
 			priceBreakdowns = append(priceBreakdowns, detail)
 		}
 
@@ -126,20 +136,23 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 				}
 
 				if charge.Recurring && charge.AdvanceMonths >= 1 {
+					advanceMonths := decimal.NewFromInt(int64(charge.AdvanceMonths))
 					if charge.Fixed {
-						detail.Total = charge.Price * float64(charge.AdvanceMonths)
+						detail.Total = charge.Price.Mul(advanceMonths)
 					} else {
-						detail.Total = superArea * charge.Price * float64(charge.AdvanceMonths)
+						detail.Total = superArea.Mul(charge.Price).Mul(advanceMonths)
 					}
 				} else {
 					if charge.Fixed {
 						detail.Total = charge.Price
 					} else {
-						detail.Total = superArea * charge.Price
+						detail.Total = superArea.Mul(charge.Price)
 					}
 				}
 
-				totalPrice += detail.Total
+				totalPrice = totalPrice.Add(detail.Total)
+				//log.Printf("total price: %v\n", totalPrice.String())
+				//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
 				priceBreakdowns = append(priceBreakdowns, detail)
 			}
 		}
@@ -147,13 +160,20 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		processOtherCharges(otherCharges)
 		processOtherCharges(optionalCharges)
 
+		//log.Printf("total price: %v\n", totalPrice.String())
+		//
 		//for i, pb := range priceBreakdowns {
 		//	fmt.Printf("Item %d:\n", i+1)
 		//	fmt.Printf("  Type:    %s\n", pb.Type)
-		//	fmt.Printf("  Price:   %.2f\n", pb.Price)
+		//	fmt.Printf("  Price:   %v\n", pb.Price.String())
 		//	fmt.Printf("  Summary: %s\n", pb.Summary)
-		//	fmt.Printf("  SuperArea:   %.2f\n", pb.SuperArea)
-		//	fmt.Printf("  Total:   %.2f\n", pb.Total)
+		//	fmt.Printf("  SuperArea:   %v\n", pb.SuperArea.String())
+		//	fmt.Printf("  Total:   %v\n", pb.Total.String())
+		//}
+
+		//return &custom.RequestError{
+		//	Status:  http.StatusBadRequest,
+		//	Message: "trial",
 		//}
 
 		saleModel := models.Sale{
@@ -286,7 +306,8 @@ func (h *hAddPaymentInstallmentForSale) execute(db *gorm.DB, orgId, society, sal
 	}
 
 	// amount to be paid for this plan
-	amount := sale.TotalPrice * float64(plan.Amount) / 100
+	percent := decimal.NewFromInt(int64(plan.Amount)) // e.g., 5 means 5%
+	amount := sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
 	salePaymentModel := models.SalePaymentStatus{
 		PaymentId: uuid.MustParse(paymentId),
 		SaleId:    uuid.MustParse(saleId),
