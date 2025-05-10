@@ -26,13 +26,13 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 
 	var paymentPlans []models.PaymentPlan
 	err = db.
-		Joins("JOIN flats ON flats.id = sales.flat_id").
-		Joins("JOIN towers ON towers.id = flats.tower_id").
-		Joins("JOIN tower_payment_statuses tps ON tps.tower_id = towers.id").
-		Joins("JOIN payment_plans pp ON pp.id = tps.payment_id").
 		Model(&models.PaymentPlan{}).
+		Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
+		Joins("JOIN towers ON towers.id = tps.tower_id").
+		Joins("JOIN flats ON flats.tower_id = towers.id").
+		Joins("JOIN sales ON sales.flat_id = flats.id").
 		Where("sales.id = ?", saleId).
-		Select("pp.*").
+		Select("payment_plans.*").
 		Scan(&paymentPlans).Error
 	if err != nil {
 		return nil, err

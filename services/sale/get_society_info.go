@@ -4,10 +4,8 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/flat"
 	"circledigital.in/real-state-erp/utils/common"
-	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type saleSocietyInfoService struct {
@@ -25,12 +23,6 @@ func (s *saleSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
 		return nil, err
 	}
 
-	if s.saleId != sale.FlatId {
-		return nil, &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid flat customer.",
-		}
-	}
 	flatSocietyInfo := flat.CreateFlatSocietyInfoService(s.db, sale.FlatId)
 	return flatSocietyInfo.GetSocietyInfo()
 }
