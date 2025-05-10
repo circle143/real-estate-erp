@@ -38,7 +38,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	var directPlans []models.PaymentPlan
 	err = db.
 		Model(&models.PaymentPlan{}).
-		Where("scope = ?", custom.DIRECT). // assuming custom.Direct is the correct enum value
+		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT). // assuming custom.Direct is the correct enum value
 		Find(&directPlans).Error
 	if err != nil {
 		return nil, err
