@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
+	"time"
 )
 
 type hGetSalePaymentBreakDown struct{}
@@ -32,6 +33,29 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
+	// direct payment plans
+	var directPlans []models.PaymentPlan
+	err = db.
+		Model(&models.PaymentPlan{}).
+		Where("scope = ?", custom.DIRECT). // assuming custom.Direct is the correct enum value
+		Find(&directPlans).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var filteredPlans []models.PaymentPlan
+	now := time.Now()
+	for _, plan := range directPlans {
+		if plan.ConditionType == custom.AFTERDAYS {
+			// Check if condition is satisfied
+			if now.Before(sale.CreatedAt.AddDate(0, 0, plan.ConditionValue)) {
+				continue // Skip this plan
+			}
+		}
+		filteredPlans = append(filteredPlans, plan)
+	}
+
+	// tower active payment plans
 	var paymentPlans []models.PaymentPlan
 	err = db.
 		Model(&models.PaymentPlan{}).
@@ -46,6 +70,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
+	paymentPlans = append(filteredPlans, paymentPlans...)
 	var statuses []models.SalePaymentStatus
 	err = db.
 		Where("sale_id = ?", saleId).
