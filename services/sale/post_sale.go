@@ -258,6 +258,25 @@ func (h *hAddPaymentInstallmentForSale) validate(db *gorm.DB, orgId, society, sa
 		return err
 	}
 
+	// check payment scope
+	paymentModel := models.PaymentPlan{
+		Id: uuid.MustParse(paymentId),
+	}
+	err = db.Find(&paymentModel).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Invalid payment plan selected.",
+			}
+		}
+	}
+
+	// if direct just return
+	if paymentModel.Scope == custom.DIRECT {
+		return nil
+	}
+
 	// check if payment is active for the tower
 	var status models.TowerPaymentStatus
 	err = db.
