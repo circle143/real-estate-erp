@@ -24,7 +24,7 @@ type Sale struct {
 	CreatedAt      time.Time             `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`
 	Customers      []Customer            `gorm:"foreignKey:SaleId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"owners,omitempty"`
-	PaymentStatus  []SalePaymentStatus   `gorm:"foreignKey:PaymentId" json:"paymentStatus,omitempty"`
+	//PaymentStatus  []SalePaymentStatus   `gorm:"foreignKey:SaleId" json:"paymentStatus,omitempty"`
 	//DeletedAt      gorm.DeletedAt `gorm:"index"`
 }
 
