@@ -330,7 +330,8 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 				totalAmount := flat.SaleDetail.TotalPrice
 				paymentPlanAmount := totalAmount.Mul(percent).Div(decimal.NewFromInt(100))
 				paymentBreakdownItem := models.TowerReportPaymentBreakdownItem{
-					Flat:   flat,
+					//Flat:   flat,
+					FlatId: flat.Id,
 					Amount: paymentPlanAmount,
 				}
 
@@ -352,6 +353,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, breakdown)
 	}
 	return &models.TowerReport{
+		Flats: soldFlats,
 		Overall: models.TowerFinance{
 			Total:     totalAmountTower,
 			Paid:      totalTowerPaid,
