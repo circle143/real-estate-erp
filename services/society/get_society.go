@@ -27,6 +27,57 @@ func (gas *hGetAllSocieties) execute(db *gorm.DB, orgId, cursor string) (*custom
 		return nil, result.Error
 	}
 
+	// count flats
+	societyIDs := make([]string, 0, len(societyData))
+	for _, s := range societyData {
+		societyIDs = append(societyIDs, s.ReraNumber)
+	}
+
+	type SocietyFlatStats struct {
+		SocietyID  string `gorm:"column:society_id"`
+		TotalFlats int64  `gorm:"column:total_flats"`
+		SoldFlats  int64  `gorm:"column:sold_flats"`
+	}
+	var stats []SocietyFlatStats
+	err := db.Raw(`
+		WITH total_flats_cte AS (
+			SELECT t.society_id, COUNT(f.id) AS total_flats
+			FROM towers t
+			JOIN flats f ON f.tower_id = t.id
+			WHERE t.society_id IN ?
+			GROUP BY t.society_id
+		),
+		sold_flats_cte AS (
+			SELECT t.society_id, COUNT(s.id) AS sold_flats
+			FROM sales s
+			JOIN flats f ON f.id = s.flat_id
+			JOIN towers t ON t.id = f.tower_id
+			WHERE t.society_id IN ?
+			GROUP BY t.society_id
+		)
+		SELECT
+			tf.society_id,
+			tf.total_flats,
+			COALESCE(sf.sold_flats, 0) AS sold_flats
+		FROM total_flats_cte tf
+		LEFT JOIN sold_flats_cte sf ON tf.society_id = sf.society_id
+	`, societyIDs, societyIDs).Scan(&stats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	statMap := make(map[string]SocietyFlatStats)
+	for _, s := range stats {
+		statMap[s.SocietyID] = s
+	}
+
+	for i, s := range societyData {
+		if stat, ok := statMap[s.ReraNumber]; ok {
+			societyData[i].TotalFlats = stat.TotalFlats
+			societyData[i].SoldFlats = stat.SoldFlats
+			societyData[i].UnsoldFlats = stat.TotalFlats - stat.SoldFlats
+		}
+	}
 	return common.CreatePaginatedResponse(&societyData), nil
 }
 

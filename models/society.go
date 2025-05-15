@@ -15,6 +15,9 @@ type Society struct {
 	CoverPhoto   string        `json:"coverPhoto"`
 	CreatedAt    time.Time     `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time     `gorm:"autoUpdateTime" json:"updatedAt"`
+	TotalFlats   int64         `gorm:"-" json:"totalFlats"`
+	SoldFlats    int64         `gorm:"-" json:"soldFlats"`
+	UnsoldFlats  int64         `gorm:"-" json:"unsoldFlats"`
 	//DeletedAt    gorm.DeletedAt `gorm:"index"`
 }
 
