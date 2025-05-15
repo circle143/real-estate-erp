@@ -10,7 +10,6 @@ import (
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
-	"time"
 )
 
 type hGetSalePaymentBreakDown struct{}
@@ -20,7 +19,7 @@ func (h *hGetSalePaymentBreakDown) validate(db *gorm.DB, orgId, society, saleId 
 	return common.IsSameSociety(saleSocietyInfo, orgId, society)
 }
 
-func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId string) (*[]models.PaymentPlan, error) {
+func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId string) (*models.PaymentPlanSaleBreakDown, error) {
 	err := h.validate(db, orgId, society, saleId)
 	if err != nil {
 		return nil, err
@@ -44,16 +43,12 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
-	var filteredPlans []models.PaymentPlan
-	now := time.Now()
-	for _, plan := range directPlans {
+	for i := range directPlans {
+		plan := &directPlans[i]
 		if plan.ConditionType == custom.AFTERDAYS {
-			// Check if condition is satisfied
-			if now.Before(sale.CreatedAt.AddDate(0, 0, plan.ConditionValue)) {
-				continue // Skip this plan
-			}
+			due := plan.CreatedAt.AddDate(0, 0, plan.ConditionValue)
+			plan.Due = &due
 		}
-		filteredPlans = append(filteredPlans, plan)
 	}
 
 	// tower active payment plans
@@ -71,7 +66,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
-	paymentPlans = append(filteredPlans, paymentPlans...)
+	paymentPlans = append(directPlans, paymentPlans...)
 	var statuses []models.SalePaymentStatus
 	err = db.
 		Where("sale_id = ?", saleId).
@@ -101,7 +96,28 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		paymentPlans[i].AmountPaid = &amount
 	}
 
-	return &paymentPlans, nil
+	// payment
+	var totalPaid = decimal.Zero
+	var total = decimal.Zero
+
+	for _, plan := range paymentPlans {
+		if plan.AmountPaid == nil {
+			continue // skip nil amount to avoid panic
+		}
+
+		total = total.Add(*plan.AmountPaid)
+
+		if plan.Paid != nil && *plan.Paid {
+			totalPaid = totalPaid.Add(*plan.AmountPaid)
+		}
+	}
+
+	return &models.PaymentPlanSaleBreakDown{
+		TotalAmount: total,
+		PaidAmount:  totalPaid,
+		Remaining:   total.Sub(totalPaid),
+		Details:     paymentPlans,
+	}, nil
 }
 
 func (s *saleService) getSalePaymentBreakDown(w http.ResponseWriter, r *http.Request) {

@@ -20,10 +20,18 @@ type PaymentPlan struct {
 	Active         *bool                       `gorm:"-" json:"active,omitempty"`
 	AmountPaid     *decimal.Decimal            `gorm:"-" json:"amountPaid,omitempty"`
 	Paid           *bool                       `gorm:"-" json:"paid,omitempty"` // used by flat payment breakdown
+	Due            *time.Time                  `gorm:"-" json:"due,omitempty"`
 	CreatedAt      time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
 func (u PaymentPlan) GetCreatedAt() time.Time {
 	return u.CreatedAt
+}
+
+type PaymentPlanSaleBreakDown struct {
+	TotalAmount decimal.Decimal `json:"totalAmount"`
+	PaidAmount  decimal.Decimal `json:"paidAmount"`
+	Remaining   decimal.Decimal `json:"remaining"`
+	Details     []PaymentPlan   `json:"details"`
 }
