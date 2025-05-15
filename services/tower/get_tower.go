@@ -72,16 +72,64 @@ func (gat *hGetAllTowers) execute(db *gorm.DB, orgId, society, cursor string) (*
 `
 	db.Raw(financeQuery, towerIDs, towerIDs).Scan(&towerFinance)
 
+	// flat stats
+	type FlatStats struct {
+		TowerId    uuid.UUID `gorm:"column:tower_id"`
+		TotalFlats int64     `gorm:"column:total_flats"`
+		SoldFlats  int64     `gorm:"column:sold_flats"`
+	}
+	var stats []FlatStats
+
+	err := db.Raw(`
+		WITH total_flats_cte AS (
+			SELECT t.id AS tower_id, COUNT(f.id) AS total_flats
+			FROM towers t
+			JOIN flats f ON f.tower_id = t.id
+			WHERE t.id IN ?
+			GROUP BY t.id
+		),
+		sold_flats_cte AS (
+			SELECT t.id AS tower_id, COUNT(s.id) AS sold_flats
+			FROM sales s
+			JOIN flats f ON f.id = s.flat_id
+			JOIN towers t ON t.id = f.tower_id
+			WHERE t.id IN ?
+			GROUP BY t.id
+		)
+		SELECT
+			tf.tower_id,
+			tf.total_flats,
+			COALESCE(sf.sold_flats, 0) AS sold_flats
+		FROM total_flats_cte tf
+		LEFT JOIN sold_flats_cte sf ON tf.tower_id = sf.tower_id
+	`, towerIDs, towerIDs).Scan(&stats).Error
+
+	if err != nil {
+		return nil, err
+	}
+
 	// merge to tower
 	financeMap := make(map[uuid.UUID]TowerFinance)
 	for _, f := range towerFinance {
 		financeMap[f.TowerID] = f
 	}
+
+	flatStatsMap := make(map[uuid.UUID]FlatStats)
+	for _, f := range stats {
+		flatStatsMap[f.TowerId] = f
+	}
+
 	for i := range towerData {
 		if finance, ok := financeMap[towerData[i].Id]; ok {
 			towerData[i].TotalAmount = finance.TotalAmount
 			towerData[i].PaidAmount = finance.PaidAmount
 			towerData[i].Remaining = finance.TotalAmount.Sub(finance.PaidAmount)
+		}
+
+		if stat, ok := flatStatsMap[towerData[i].Id]; ok {
+			towerData[i].TotalFlats = stat.TotalFlats
+			towerData[i].SoldFlats = stat.SoldFlats
+			towerData[i].UnsoldFlats = stat.TotalFlats - stat.SoldFlats
 		}
 	}
 
