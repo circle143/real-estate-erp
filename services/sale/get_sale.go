@@ -303,6 +303,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 	}
 
 	totalTowerPaid := decimal.Zero
+	totalAmountTowerPaymentPlan := decimal.Zero
 	// 8 -> populate payment breakdown
 	for _, summary := range paymentSummaries {
 		paymentId := summary.PaymentID
@@ -319,6 +320,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 			paymentBreakdown.Remaining = paymentBreakdown.Total.Sub(summary.TotalPaid)
 
 			totalTowerPaid = totalTowerPaid.Add(summary.TotalPaid)
+			totalAmountTowerPaymentPlan = totalAmountTowerPaymentPlan.Add(paymentBreakdown.Total)
 
 			var paidItems []models.TowerReportPaymentBreakdownItem
 			var unpaidItems []models.TowerReportPaymentBreakdownItem
@@ -350,9 +352,16 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, breakdown)
 	}
 	return &models.TowerReport{
-		Total:            totalAmountTower,
-		Paid:             totalTowerPaid,
-		Remaining:        totalAmountTower.Sub(totalTowerPaid),
+		Overall: models.TowerFinance{
+			Total:     totalAmountTower,
+			Paid:      totalTowerPaid,
+			Remaining: totalAmountTower.Sub(totalTowerPaid),
+		},
+		PaymentPlan: models.TowerFinance{
+			Total:     totalAmountTowerPaymentPlan,
+			Paid:      totalTowerPaid,
+			Remaining: totalAmountTowerPaymentPlan.Sub(totalTowerPaid),
+		},
 		PaymentBreakdown: towerReportPaymentBreakdown,
 	}, nil
 }

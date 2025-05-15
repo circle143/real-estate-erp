@@ -29,6 +29,12 @@ func (u Tower) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }
 
+type TowerFinance struct {
+	Total     decimal.Decimal `json:"total"`
+	Paid      decimal.Decimal `json:"paid"`
+	Remaining decimal.Decimal `json:"remaining"`
+}
+
 type TowerReportPaymentBreakdownItem struct {
 	Flat
 	Amount decimal.Decimal `json:"amount"`
@@ -44,8 +50,7 @@ type TowerReportPaymentBreakdown struct {
 }
 
 type TowerReport struct {
-	Total            decimal.Decimal               `json:"total"`
-	Paid             decimal.Decimal               `json:"paid"`
-	Remaining        decimal.Decimal               `json:"remaining"`
+	Overall          TowerFinance                  `json:"overall"`
+	PaymentPlan      TowerFinance                  `json:"paymentPlan"`
 	PaymentBreakdown []TowerReportPaymentBreakdown `json:"paymentBreakdown"`
 }
