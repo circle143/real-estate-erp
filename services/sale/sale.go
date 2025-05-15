@@ -26,7 +26,7 @@ type customerDetails struct {
 	LastName         string           `json:"lastName" validate:"required"`
 	DateOfBirth      custom.DateOnly  `json:"dateOfBirth" validate:"required"`
 	Gender           string           `json:"gender" validate:"required"`
-	Photo            string           `json:"photo" validate:"required"`
+	Photo            string           `json:"photo"`
 	MaritalStatus    string           `json:"maritalStatus" validate:"required"`
 	Nationality      string           `json:"nationality" validate:"required"`
 	Email            string           `json:"email" validate:"required,email"`
