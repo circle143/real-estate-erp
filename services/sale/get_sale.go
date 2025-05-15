@@ -2,11 +2,13 @@ package sale
 
 import (
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
@@ -37,7 +39,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	var directPlans []models.PaymentPlan
 	err = db.
 		Model(&models.PaymentPlan{}).
-		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT). // assuming custom.Direct is the correct enum value
+		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
 		Find(&directPlans).Error
 	if err != nil {
 		return nil, err
@@ -176,6 +178,192 @@ func (s *saleService) getSocietySalesReport(w http.ResponseWriter, r *http.Reque
 
 	report := hGetSocietySalesReport{}
 	res, err := report.execute(s.db, orgId, societyRera)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
+
+type hGetTowerSalesReport struct{}
+
+func (h *hGetTowerSalesReport) validate(db *gorm.DB, orgId, society, towerId string) error {
+	societyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(towerId))
+	return common.IsSameSociety(societyInfoService, orgId, society)
+}
+
+func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId string) (*models.TowerReport, error) {
+	err := h.validate(db, orgId, society, towerId)
+	if err != nil {
+		return nil, err
+	}
+
+	// 1 -> get all tower sold flats
+	var soldFlats []models.Flat
+	err = db.Preload("SaleDetail").
+		Preload("SaleDetail.Customers").
+		Joins("JOIN sales s ON s.flat_id = flats.id").
+		Where("flats.tower_id = ?", towerId).
+		Find(&soldFlats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 2 -> create map saleId -> models.Flat for easy lookup and creating final response
+	flatsMap := make(map[uuid.UUID]models.Flat)
+	for _, flat := range soldFlats {
+		saleId := flat.SaleDetail.Id
+		flatsMap[saleId] = flat
+	}
+
+	// 3 -> get total sale amount
+	var totalAmountTower decimal.Decimal
+	err = db.
+		Table("towers t").
+		Select("COALESCE(SUM(s.total_price), 0)").
+		Joins("JOIN flats f ON f.tower_id = t.id").
+		Joins("JOIN sales s ON s.flat_id = f.id").
+		Where("t.id = ?", towerId).
+		Scan(&totalAmountTower).Error
+
+	// 4 -> get all direct plans
+	var directPlans []models.PaymentPlan
+	err = db.
+		Model(&models.PaymentPlan{}).
+		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
+		Find(&directPlans).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 5 -> get all tower active payment plans
+	var paymentPlans []models.PaymentPlan
+	err = db.
+		Model(&models.PaymentPlan{}).
+		Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
+		Where("tps.tower_id = ?", towerId).
+		Select("payment_plans.*").
+		Scan(&paymentPlans).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// all payment plans combined
+	paymentPlans = append(directPlans, paymentPlans...)
+	var paymentPlansIds []uuid.UUID
+
+	var towerReportPaymentBreakdown []models.TowerReportPaymentBreakdown
+	towerReportPaymentBreakdownMap := make(map[uuid.UUID]models.TowerReportPaymentBreakdown)
+
+	// 6 -> update each plan amount paid
+	for _, plan := range paymentPlans {
+		percent := decimal.NewFromInt(int64(plan.Amount))
+		paymentReport := models.TowerReportPaymentBreakdown{
+			PaymentPlan: plan,
+			Total:       totalAmountTower.Mul(percent).Div(decimal.NewFromInt(100)),
+		}
+		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, paymentReport)
+		towerReportPaymentBreakdownMap[plan.Id] = paymentReport
+		paymentPlansIds = append(paymentPlansIds, plan.Id)
+	}
+
+	// 7 -> get paid amount for each plan and paid sale items
+	type PaymentSummary struct {
+		PaymentID uuid.UUID
+		TotalPaid decimal.Decimal
+		SaleIDs   pq.StringArray `gorm:"type:[]text"`
+	}
+	var paymentSummaries []PaymentSummary
+
+	err = db.Raw(
+		`
+		SELECT
+			ps.payment_id,
+			COALESCE(SUM(ps.amount), 0) AS total_paid,
+			ARRAY_AGG(DISTINCT ps.sale_id) AS sale_ids
+		FROM sales s
+		JOIN flats f ON s.flat_id = f.id
+		JOIN towers t ON t.id = f.tower_id
+		JOIN sale_payment_statuses ps ON s.id = ps.sale_id
+		WHERE
+		t.id = ?
+		AND ps.payment_id IN ?
+		GROUP BY ps.payment_id
+	`,
+		towerId,
+		paymentPlansIds,
+	).Scan(&paymentSummaries).Error
+	if err != nil {
+		return nil, err
+	}
+
+	totalTowerPaid := decimal.Zero
+	// 8 -> populate payment breakdown
+	for _, summary := range paymentSummaries {
+		paymentId := summary.PaymentID
+		saleIds := summary.SaleIDs
+
+		saleIdMap := make(map[string]struct{}, len(saleIds))
+		for _, sid := range saleIds {
+			saleIdMap[sid] = struct{}{}
+		}
+
+		if paymentBreakdown, ok := towerReportPaymentBreakdownMap[paymentId]; ok {
+			percent := decimal.NewFromInt(int64(paymentBreakdown.Amount))
+			paymentBreakdown.Paid = summary.TotalPaid
+			paymentBreakdown.Remaining = paymentBreakdown.Total.Sub(summary.TotalPaid)
+
+			totalTowerPaid = totalTowerPaid.Add(summary.TotalPaid)
+
+			var paidItems []models.TowerReportPaymentBreakdownItem
+			var unpaidItems []models.TowerReportPaymentBreakdownItem
+
+			for _, flat := range soldFlats {
+				id := flat.SaleDetail.Id.String()
+				totalAmount := flat.SaleDetail.TotalPrice
+				paymentPlanAmount := totalAmount.Mul(percent).Div(decimal.NewFromInt(100))
+				paymentBreakdownItem := models.TowerReportPaymentBreakdownItem{
+					Flat:   flat,
+					Amount: paymentPlanAmount,
+				}
+
+				if _, found := saleIdMap[id]; found {
+					paidItems = append(paidItems, paymentBreakdownItem)
+				} else {
+					unpaidItems = append(unpaidItems, paymentBreakdownItem)
+				}
+			}
+
+			paymentBreakdown.PaidItems = paidItems
+			paymentBreakdown.UnpaidItems = unpaidItems
+			towerReportPaymentBreakdownMap[paymentId] = paymentBreakdown
+		}
+	}
+
+	towerReportPaymentBreakdown = make([]models.TowerReportPaymentBreakdown, 0, len(towerReportPaymentBreakdownMap))
+	for _, breakdown := range towerReportPaymentBreakdownMap {
+		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, breakdown)
+	}
+	return &models.TowerReport{
+		Total:            totalAmountTower,
+		Paid:             totalTowerPaid,
+		Remaining:        totalAmountTower.Sub(totalTowerPaid),
+		PaymentBreakdown: towerReportPaymentBreakdown,
+	}, nil
+}
+
+func (s *saleService) getTowerSalesReport(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	towerId := chi.URLParam(r, "towerId")
+
+	report := hGetTowerSalesReport{}
+	res, err := report.execute(s.db, orgId, societyRera, towerId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
