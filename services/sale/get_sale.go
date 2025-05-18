@@ -302,6 +302,29 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 		return nil, err
 	}
 
+	// Convert existing summaries to a map for quick lookup
+	summaryMap := make(map[uuid.UUID]PaymentSummary)
+	for _, summary := range paymentSummaries {
+		summaryMap[summary.PaymentID] = summary
+	}
+
+	// Add missing payment plans with default values
+	for _, paymentId := range paymentPlansIds {
+		if _, found := summaryMap[paymentId]; !found {
+			summaryMap[paymentId] = PaymentSummary{
+				PaymentID: paymentId,
+				TotalPaid: decimal.Zero,
+				SaleIDs:   pq.StringArray{},
+			}
+		}
+	}
+
+	// Convert the map back to a slice
+	paymentSummaries = make([]PaymentSummary, 0, len(summaryMap))
+	for _, summary := range summaryMap {
+		paymentSummaries = append(paymentSummaries, summary)
+	}
+
 	totalTowerPaid := decimal.Zero
 	totalAmountTowerPaymentPlan := decimal.Zero
 	// 8 -> populate payment breakdown
