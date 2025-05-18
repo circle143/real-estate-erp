@@ -47,7 +47,7 @@ func (usd *hUpdateSocietyDetails) execute(db *gorm.DB, society, orgId string) er
 	}).Error
 }
 
-func (ss *societyService) updateSocietyDetails(w http.ResponseWriter, r *http.Request) {
+func (s *societyService) updateSocietyDetails(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
@@ -56,7 +56,7 @@ func (ss *societyService) updateSocietyDetails(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	err := reqBody.execute(ss.db, societyRera, orgId)
+	err := reqBody.execute(s.db, societyRera, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

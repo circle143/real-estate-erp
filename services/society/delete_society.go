@@ -21,12 +21,12 @@ func (ds *hDeleteSociety) execute(db *gorm.DB, society, orgId string) error {
 	return db.Delete(&societyModel).Error
 }
 
-func (ss *societyService) deleteSociety(w http.ResponseWriter, r *http.Request) {
+func (s *societyService) deleteSociety(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
 	society := hDeleteSociety{}
-	err := society.execute(ss.db, societyRera, orgId)
+	err := society.execute(s.db, societyRera, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

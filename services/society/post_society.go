@@ -33,14 +33,14 @@ func (cs *hCreateSociety) execute(db *gorm.DB, orgId string) (*models.Society, e
 	return &society, nil
 }
 
-func (ss *societyService) createSociety(w http.ResponseWriter, r *http.Request) {
+func (s *societyService) createSociety(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	reqBody := payload.ValidateAndDecodeRequest[hCreateSociety](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	society, err := reqBody.execute(ss.db, orgId)
+	society, err := reqBody.execute(s.db, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

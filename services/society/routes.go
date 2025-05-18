@@ -5,11 +5,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (ss *societyService) GetBasePath() string {
+func (s *societyService) GetBasePath() string {
 	return "/society"
 }
 
-func (ss *societyService) GetRoutes() *chi.Mux {
+func (s *societyService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
 
@@ -18,9 +18,9 @@ func (ss *societyService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", ss.createSociety)
-		router.Patch("/{society}", ss.updateSocietyDetails)
-		router.Delete("/{society}", ss.deleteSociety)
+		router.Post("/", s.createSociety)
+		router.Patch("/{society}", s.updateSocietyDetails)
+		router.Delete("/{society}", s.deleteSociety)
 	})
 
 	// org admin and user
@@ -28,7 +28,8 @@ func (ss *societyService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Get("/", ss.getAllSocieties)
+		router.Get("/", s.getAllSocieties)
+		router.Get("/{society}", s.getSocietyById)
 	})
 
 	return mux
