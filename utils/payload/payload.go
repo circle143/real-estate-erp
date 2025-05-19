@@ -28,5 +28,10 @@ func RegisterValidators() error {
 		return err
 	}
 
+	err = validatorObj.RegisterValidation("passport", validation.PassportValidator)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
