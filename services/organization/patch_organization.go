@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -65,7 +64,7 @@ func (os *organizationService) updateOrganizationStatus(w http.ResponseWriter, r
 type hUpdateOrganizationDetails struct {
 	Name string
 	Logo string
-	GST  string
+	GST  string `validate:"omitempty,gst"`
 }
 
 func (uod *hUpdateOrganizationDetails) validate() error {
@@ -77,19 +76,6 @@ func (uod *hUpdateOrganizationDetails) validate() error {
 		}
 	}
 
-	// check if gst is present and is valid
-	if strings.TrimSpace(uod.GST) != "" {
-		gstRegex := `^[0-9]{2}[A-Z]{3}[ABCFGHLJPTF]{1}[A-Z]{1}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`
-		valid, _ := regexp.MatchString(gstRegex, uod.GST)
-
-		if !valid {
-			return &custom.RequestError{
-				Status:  http.StatusBadRequest,
-				Message: "Invalid GST provided.",
-			}
-		}
-
-	}
 	return nil
 }
 

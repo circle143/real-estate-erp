@@ -2,9 +2,11 @@ package init
 
 import (
 	"circledigital.in/real-state-erp/utils/common"
+	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/MicahParks/keyfunc/v3"
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
+	"log"
 )
 
 // package init handles all the application initialization
@@ -31,6 +33,12 @@ func (a *app) GetAWSConfig() common.IAWSConfig {
 
 // initApplication configures all the objects required for startup of application
 func (a *app) initApplication() {
+	// register validators
+	err := payload.RegisterValidators()
+	if err != nil {
+		log.Fatalf("Error registering validators: %v\n", err)
+	}
+
 	a.dbClient = a.createDBClient()
 	a.aws = a.createAWSConfig()
 	a.jwtKey = a.createJWTKeyFunc()
