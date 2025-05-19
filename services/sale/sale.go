@@ -34,7 +34,7 @@ type customerDetails struct {
 	MiddleName       string           `json:"middleName"`
 	NumberOfChildren int              `json:"numberOfChildren"`
 	AnniversaryDate  *custom.DateOnly `json:"anniversaryDate"`
-	AadharNumber     string           `json:"aadharNumber"`
+	AadharNumber     string           `json:"aadharNumber" validate:"omitempty,aadhar"`
 	PanNumber        string           `json:"panNumber"`
 	PassportNumber   string           `json:"passportNumber"`
 	Profession       string           `json:"profession"`

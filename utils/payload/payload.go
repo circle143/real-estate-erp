@@ -18,5 +18,10 @@ func RegisterValidators() error {
 		return err
 	}
 
+	err = validatorObj.RegisterValidation("aadhar", validation.AadharValidator)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
