@@ -23,5 +23,10 @@ func RegisterValidators() error {
 		return err
 	}
 
+	err = validatorObj.RegisterValidation("pan", validation.PANValidator)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
