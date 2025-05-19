@@ -1,6 +1,7 @@
 package payload
 
 import (
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/validation"
 	"github.com/go-playground/validator/v10"
 )
@@ -11,26 +12,24 @@ import (
 // validatorObj handles validating incoming request body
 var validatorObj = validator.New()
 
+type validatorFactory func() common.IValidator
+
+var customValidators = []validatorFactory{
+	validation.CreateAadharValidator,
+	validation.CreateGSTValidator,
+	validation.CreatePassportValidator,
+	validation.CreatePanValidator,
+}
+
 // RegisterValidators register custom validators
 func RegisterValidators() error {
-	err := validatorObj.RegisterValidation("gst", validation.GSTValidator)
-	if err != nil {
-		return err
-	}
-
-	err = validatorObj.RegisterValidation("aadhar", validation.AadharValidator)
-	if err != nil {
-		return err
-	}
-
-	err = validatorObj.RegisterValidation("pan", validation.PANValidator)
-	if err != nil {
-		return err
-	}
-
-	err = validatorObj.RegisterValidation("passport", validation.PassportValidator)
-	if err != nil {
-		return err
+	// add custom validations
+	for _, factory := range customValidators {
+		v := factory()
+		err := validatorObj.RegisterValidation(v.ValidationTag(), v.Validator)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
