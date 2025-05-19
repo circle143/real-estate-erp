@@ -15,7 +15,9 @@ type hGetAllPreferenceLocationCharges struct{}
 
 func (h *hGetAllPreferenceLocationCharges) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
 	var charges []models.PreferenceLocationCharge
-	query := db.Where("org_id = ? and society_id = ?", orgId, society).Order("created_at DESC").Limit(custom.LIMIT + 1)
+	query := db.Where("org_id = ? and society_id = ?", orgId, society).Preload("PriceHistory", func(db *gorm.DB) *gorm.DB {
+		return db.Order("price_histories.active_from DESC")
+	}).Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
 		decodedCursor, err := common.DecodeCursor(cursor)
 		if err == nil {
@@ -53,7 +55,9 @@ type hGetAllOtherCharges struct{}
 
 func (h *hGetAllOtherCharges) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
 	var charges []models.OtherCharge
-	query := db.Where("org_id = ? and society_id = ?", orgId, society).Order("created_at DESC").Limit(custom.LIMIT + 1)
+	query := db.Where("org_id = ? and society_id = ?", orgId, society).Preload("PriceHistory", func(db *gorm.DB) *gorm.DB {
+		return db.Order("price_histories.active_from DESC")
+	}).Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
 		decodedCursor, err := common.DecodeCursor(cursor)
 		if err == nil {
