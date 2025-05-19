@@ -16,23 +16,44 @@ import (
 )
 
 type hCreateSale struct {
-	Details         []customerDetails `validate:"required,min=1,dive"`
+	Type            string            `validate:"required"`
+	Details         []customerDetails `validate:"omitempty,dive"`
 	BasicCost       float64           `validate:"required"`
 	OptionalCharges []string
+	CompanyBuyer    companyCustomerDetails `validate:"omitempty,dive"`
 }
 
 func (ac *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
+	// check type and validate
+	buyerType := saleBuyerType(ac.Type)
+	if !buyerType.IsValid() {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid sale buyer type.",
+		}
+	}
+
 	societyInfoService := flat.CreateFlatSocietyInfoService(db, uuid.MustParse(flatId))
 	err := common.IsSameSociety(societyInfoService, orgId, society)
 	if err != nil {
 		return err
 	}
 
-	for _, detail := range ac.Details {
-		err = detail.validate()
-		if err != nil {
-			return err
+	if buyerType == user {
+		if len(ac.Details) == 0 {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Missing buyer details.",
+			}
 		}
+		for _, detail := range ac.Details {
+			err = detail.validate()
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return ac.CompanyBuyer.validate()
 	}
 
 	return nil
@@ -44,6 +65,7 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		return err
 	}
 	basicCost := decimal.NewFromFloat(ac.BasicCost)
+	buyerType := saleBuyerType(ac.Type)
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		flatModel := models.Flat{
@@ -188,34 +210,43 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 			return err
 		}
 
-		customers := make([]*models.Customer, 0, len(ac.Details))
-		for _, d := range ac.Details {
-			customer := &models.Customer{
-				SaleId:           saleModel.Id,
-				Level:            d.Level,
-				Salutation:       custom.Salutation(d.Salutation),
-				FirstName:        d.FirstName,
-				LastName:         d.LastName,
-				DateOfBirth:      d.DateOfBirth,
-				Gender:           custom.Gender(d.Gender),
-				Photo:            d.Photo,
-				MaritalStatus:    custom.MaritalStatus(d.MaritalStatus),
-				Nationality:      custom.Nationality(d.Nationality),
-				Email:            d.Email,
-				PhoneNumber:      d.PhoneNumber,
-				MiddleName:       d.MiddleName,
-				NumberOfChildren: d.NumberOfChildren,
-				AnniversaryDate:  d.AnniversaryDate,
-				AadharNumber:     d.AadharNumber,
-				PanNumber:        d.PanNumber,
-				PassportNumber:   d.PassportNumber,
-				Profession:       d.Profession,
-				Designation:      d.Designation,
-				CompanyName:      d.CompanyName,
+		if buyerType == user {
+			customers := make([]*models.Customer, 0, len(ac.Details))
+			for _, d := range ac.Details {
+				customer := &models.Customer{
+					SaleId:           saleModel.Id,
+					Level:            d.Level,
+					Salutation:       custom.Salutation(d.Salutation),
+					FirstName:        d.FirstName,
+					LastName:         d.LastName,
+					DateOfBirth:      d.DateOfBirth,
+					Gender:           custom.Gender(d.Gender),
+					Photo:            d.Photo,
+					MaritalStatus:    custom.MaritalStatus(d.MaritalStatus),
+					Nationality:      custom.Nationality(d.Nationality),
+					Email:            d.Email,
+					PhoneNumber:      d.PhoneNumber,
+					MiddleName:       d.MiddleName,
+					NumberOfChildren: d.NumberOfChildren,
+					AnniversaryDate:  d.AnniversaryDate,
+					AadharNumber:     d.AadharNumber,
+					PanNumber:        d.PanNumber,
+					PassportNumber:   d.PassportNumber,
+					Profession:       d.Profession,
+					Designation:      d.Designation,
+					CompanyName:      d.CompanyName,
+				}
+				customers = append(customers, customer)
 			}
-			customers = append(customers, customer)
+			return tx.Create(customers).Error
+		} else {
+			companyBuyer := models.CompanyCustomer{
+				Name:         ac.CompanyBuyer.Name,
+				AadharNumber: ac.CompanyBuyer.AadharNumber,
+				PanNumber:    ac.CompanyBuyer.PanNumber,
+			}
+			return tx.Create(companyBuyer).Error
 		}
-		return tx.Create(customers).Error
 	})
 }
 
