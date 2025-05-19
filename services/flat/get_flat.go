@@ -22,6 +22,7 @@ func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor,
 		Where("towers.society_id = ? AND towers.org_id = ?", societyRera, orgId).
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
+		Preload("SaleDetail.CompanyCustomer").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
@@ -114,6 +115,7 @@ func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, 
 		Where("flats.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
+		Preload("SaleDetail.CompanyCustomer").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
@@ -207,6 +209,7 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 		Where("towers.society_id = ? AND towers.org_id = ? and flats.name like ?", society, orgId, name+"%").
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
+		Preload("SaleDetail.CompanyCustomer").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
