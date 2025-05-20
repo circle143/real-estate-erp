@@ -9,7 +9,8 @@ import (
 type CompanyCustomer struct {
 	Id           uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SaleId       uuid.UUID `gorm:"not null;index" json:"saleId"`
-	Name         string    `gorm:"required" json:"name"`
+	Name         string    `gorm:"not null" json:"name"`
+	CompanyPan   string    `gorm:"not null" json:"companyPan"`
 	AadharNumber string    `json:"aadharNumber"`
 	PanNumber    string    `json:"panNumber"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
