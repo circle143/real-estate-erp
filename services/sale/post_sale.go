@@ -240,13 +240,15 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 			return tx.Create(customers).Error
 		} else {
 			companyBuyer := models.CompanyCustomer{
+				SaleId:       saleModel.Id,
 				Name:         ac.CompanyBuyer.Name,
 				CompanyPan:   ac.CompanyBuyer.CompanyPan,
 				CompanyGst:   ac.CompanyBuyer.CompanyGst,
 				AadharNumber: ac.CompanyBuyer.AadharNumber,
 				PanNumber:    ac.CompanyBuyer.PanNumber,
 			}
-			return tx.Create(companyBuyer).Error
+
+			return tx.Create(&companyBuyer).Error
 		}
 	})
 }
