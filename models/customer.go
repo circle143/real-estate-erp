@@ -10,7 +10,6 @@ import (
 type Customer struct {
 	Id               uuid.UUID            `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SaleId           uuid.UUID            `gorm:"not null;index" json:"saleId"`
-	Level            int                  `gorm:"not null" json:"level"`
 	Salutation       custom.Salutation    `gorm:"not null" json:"salutation"`
 	FirstName        string               `gorm:"not null" json:"firstName"`
 	LastName         string               `gorm:"not null" json:"lastName"`

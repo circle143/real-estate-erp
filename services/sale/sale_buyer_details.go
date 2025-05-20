@@ -8,7 +8,6 @@ import (
 
 // customerDetails contains customer info for creation and update
 type customerDetails struct {
-	Level            int              `json:"level"`
 	Salutation       string           `json:"salutation" validate:"required"`
 	FirstName        string           `json:"firstName" validate:"required"`
 	LastName         string           `json:"lastName" validate:"required"`

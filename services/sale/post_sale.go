@@ -215,7 +215,6 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 			for _, d := range ac.Details {
 				customer := &models.Customer{
 					SaleId:           saleModel.Id,
-					Level:            d.Level,
 					Salutation:       custom.Salutation(d.Salutation),
 					FirstName:        d.FirstName,
 					LastName:         d.LastName,
