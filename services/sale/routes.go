@@ -19,6 +19,7 @@ func (s *saleService) GetRoutes() *chi.Mux {
 
 		router.Patch("/customer/{customerId}", s.updateSaleCustomerDetails)
 		router.Patch("/company-customer/{customerId}", s.updateSaleCompanyCustomerDetails)
+		router.Delete("/{saleId}", s.clearSaleRecord)
 	})
 
 	mux.Group(func(router chi.Router) {
@@ -30,8 +31,7 @@ func (s *saleService) GetRoutes() *chi.Mux {
 		router.Get("/{saleId}/payment-breakdown", s.getSalePaymentBreakDown)
 		router.Get("/report", s.getSocietySalesReport)
 		router.Get("/tower/{towerId}/report", s.getTowerSalesReport)
-		//router.Delete("/{customer}", cs.addCustomerToFlat)
-		//router.Patch("/{customer}", cs.updateCustomerDetails)
+
 	})
 
 	return mux

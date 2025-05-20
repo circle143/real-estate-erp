@@ -1,27 +1,50 @@
 package sale
 
-//
-//type hRemoveCustomerFromFlat struct{}
-//
-//func (rc *hRemoveCustomerFromFlat) validate(db *gorm.DB, orgId, society, flatId string) error {
-//	societyInfoService := flat.CreateFlatSocietyInfoService(db, uuid.MustParse(flatId))
-//	return common.IsSameSociety(societyInfoService, orgId, society)
-//
-//}
-//func (rc *hRemoveCustomerFromFlat) execute(db *gorm.DB, orgId, society, flatId, customer string) error {
-//	err := rc.validate(db, orgId, society, flatId)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return db.Transaction(func(tx *gorm.DB) error {
-//		return nil
-//	})
-//}
-//
-//func (cs *customerService) removeCustomerFromFlat(w http.ResponseWriter, r *http.Request) {
-//	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
-//	societyRera := chi.URLParam(r, "society")
-//	flatId := chi.URLParam(r, "flat")
-//	customer := chi.URLParam(r, "customer")
-//}
+import (
+	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/utils/common"
+	"circledigital.in/real-state-erp/utils/custom"
+	"circledigital.in/real-state-erp/utils/payload"
+	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+	"net/http"
+)
+
+type hClearSaleRecord struct{}
+
+func (h *hClearSaleRecord) validate(db *gorm.DB, orgId, society, saleId string) error {
+	societyInfoService := CreateSaleSocietyInfoService(db, uuid.MustParse(saleId))
+	return common.IsSameSociety(societyInfoService, orgId, society)
+
+}
+func (h *hClearSaleRecord) execute(db *gorm.DB, orgId, society, saleId string) error {
+	err := h.validate(db, orgId, society, saleId)
+	if err != nil {
+		return err
+	}
+
+	saleModel := models.Sale{
+		Id: uuid.MustParse(saleId),
+	}
+	return db.Delete(&saleModel).Error
+}
+
+func (s *saleService) clearSaleRecord(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	saleId := chi.URLParam(r, "saleId")
+
+	sale := hClearSaleRecord{}
+	err := sale.execute(s.db, orgId, societyRera, saleId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Successfully deleted sale record."
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
