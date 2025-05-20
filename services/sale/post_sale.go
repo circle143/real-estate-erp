@@ -20,7 +20,7 @@ type hCreateSale struct {
 	Details         []customerDetails `validate:"omitempty,dive"`
 	BasicCost       float64           `validate:"required"`
 	OptionalCharges []string
-	CompanyBuyer    companyCustomerDetails `validate:"omitempty,dive"`
+	CompanyBuyer    companyCustomerDetails `validate:"omitempty"`
 }
 
 func (ac *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
