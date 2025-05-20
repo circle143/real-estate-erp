@@ -243,6 +243,7 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 			companyBuyer := models.CompanyCustomer{
 				Name:         ac.CompanyBuyer.Name,
 				CompanyPan:   ac.CompanyBuyer.CompanyPan,
+				CompanyGst:   ac.CompanyBuyer.CompanyGst,
 				AadharNumber: ac.CompanyBuyer.AadharNumber,
 				PanNumber:    ac.CompanyBuyer.PanNumber,
 			}

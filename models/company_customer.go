@@ -11,6 +11,7 @@ type CompanyCustomer struct {
 	SaleId       uuid.UUID `gorm:"not null;index" json:"saleId"`
 	Name         string    `gorm:"not null" json:"name"`
 	CompanyPan   string    `gorm:"not null" json:"companyPan"`
+	CompanyGst   string    ` json:"companyGst"`
 	AadharNumber string    `json:"aadharNumber"`
 	PanNumber    string    `json:"panNumber"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`

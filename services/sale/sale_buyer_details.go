@@ -71,6 +71,7 @@ func (cd *customerDetails) validate() error {
 type companyCustomerDetails struct {
 	Name         string `json:"name" validate:"required"`
 	CompanyPan   string `json:"companyPan" validate:"required,pan"`
+	CompanyGst   string `json:"companyGst" validate:"omitempty,gst"`
 	AadharNumber string `json:"aadharNumber" validate:"omitempty,aadhar"`
 	PanNumber    string `json:"panNumber" validate:"omitempty,pan"`
 }
