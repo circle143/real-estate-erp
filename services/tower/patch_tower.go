@@ -11,7 +11,8 @@ import (
 )
 
 type hUpdateTower struct {
-	FloorCount int `validate:"required"`
+	FloorCount int    `validate:"required"`
+	Name       string `validate:"required"`
 }
 
 func (h *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error {
@@ -22,6 +23,7 @@ func (h *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error 
 		Where("org_id = ? and society_id = ?", orgId, society).
 		Updates(models.Tower{
 			FloorCount: h.FloorCount,
+			Name:       h.Name,
 		}).Error
 }
 
