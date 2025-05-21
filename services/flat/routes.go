@@ -20,6 +20,7 @@ func (s *flatService) GetRoutes() *chi.Mux {
 
 		router.Post("/", s.createNewFlat)
 		router.Delete("/{flat}", s.deleteFlat)
+		router.Patch("/{flatId}", s.updateFlatDetails)
 	})
 
 	// org admin and user
