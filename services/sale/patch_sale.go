@@ -12,7 +12,7 @@ import (
 )
 
 type hUpdateCustomerSaleDetails struct {
-	details customerDetails `validate:"required"`
+	Details customerDetails `validate:"required"`
 }
 
 func (h *hUpdateCustomerSaleDetails) validate(db *gorm.DB, orgId, society, customerId string) error {
@@ -21,7 +21,7 @@ func (h *hUpdateCustomerSaleDetails) validate(db *gorm.DB, orgId, society, custo
 	if err != nil {
 		return err
 	}
-	return h.details.validate()
+	return h.Details.validate()
 }
 
 func (h *hUpdateCustomerSaleDetails) execute(db *gorm.DB, orgId, society, customerId string) error {
@@ -34,25 +34,25 @@ func (h *hUpdateCustomerSaleDetails) execute(db *gorm.DB, orgId, society, custom
 		Id: uuid.MustParse(customerId),
 	}
 	return db.Model(&customerModel).Updates(models.Customer{
-		Salutation:       custom.Salutation(h.details.Salutation),
-		FirstName:        h.details.FirstName,
-		LastName:         h.details.LastName,
-		DateOfBirth:      h.details.DateOfBirth,
-		Gender:           custom.Gender(h.details.Gender),
-		Photo:            h.details.Photo,
-		MaritalStatus:    custom.MaritalStatus(h.details.MaritalStatus),
-		Nationality:      custom.Nationality(h.details.Nationality),
-		Email:            h.details.Email,
-		PhoneNumber:      h.details.PhoneNumber,
-		MiddleName:       h.details.MiddleName,
-		NumberOfChildren: h.details.NumberOfChildren,
-		AnniversaryDate:  h.details.AnniversaryDate,
-		AadharNumber:     h.details.AadharNumber,
-		PanNumber:        h.details.PanNumber,
-		PassportNumber:   h.details.PassportNumber,
-		Profession:       h.details.Profession,
-		Designation:      h.details.Designation,
-		CompanyName:      h.details.CompanyName,
+		Salutation:       custom.Salutation(h.Details.Salutation),
+		FirstName:        h.Details.FirstName,
+		LastName:         h.Details.LastName,
+		DateOfBirth:      h.Details.DateOfBirth,
+		Gender:           custom.Gender(h.Details.Gender),
+		Photo:            h.Details.Photo,
+		MaritalStatus:    custom.MaritalStatus(h.Details.MaritalStatus),
+		Nationality:      custom.Nationality(h.Details.Nationality),
+		Email:            h.Details.Email,
+		PhoneNumber:      h.Details.PhoneNumber,
+		MiddleName:       h.Details.MiddleName,
+		NumberOfChildren: h.Details.NumberOfChildren,
+		AnniversaryDate:  h.Details.AnniversaryDate,
+		AadharNumber:     h.Details.AadharNumber,
+		PanNumber:        h.Details.PanNumber,
+		PassportNumber:   h.Details.PassportNumber,
+		Profession:       h.Details.Profession,
+		Designation:      h.Details.Designation,
+		CompanyName:      h.Details.CompanyName,
 	}).Error
 }
 
@@ -80,7 +80,7 @@ func (s *saleService) updateSaleCustomerDetails(w http.ResponseWriter, r *http.R
 }
 
 type hUpdateCompanyCustomerSaleDetails struct {
-	details companyCustomerDetails `validate:"required"`
+	Details companyCustomerDetails `validate:"required"`
 }
 
 func (h *hUpdateCompanyCustomerSaleDetails) validate(db *gorm.DB, orgId, society, customerId string) error {
@@ -89,7 +89,7 @@ func (h *hUpdateCompanyCustomerSaleDetails) validate(db *gorm.DB, orgId, society
 	if err != nil {
 		return err
 	}
-	return h.details.validate()
+	return h.Details.validate()
 }
 
 func (h *hUpdateCompanyCustomerSaleDetails) execute(db *gorm.DB, orgId, society, customerId string) error {
@@ -102,11 +102,11 @@ func (h *hUpdateCompanyCustomerSaleDetails) execute(db *gorm.DB, orgId, society,
 		Id: uuid.MustParse(customerId),
 	}
 	return db.Model(&customerModel).Updates(models.CompanyCustomer{
-		Name:         h.details.Name,
-		CompanyPan:   h.details.CompanyPan,
-		CompanyGst:   h.details.CompanyGst,
-		AadharNumber: h.details.AadharNumber,
-		PanNumber:    h.details.PanNumber,
+		Name:         h.Details.Name,
+		CompanyPan:   h.Details.CompanyPan,
+		CompanyGst:   h.Details.CompanyGst,
+		AadharNumber: h.Details.AadharNumber,
+		PanNumber:    h.Details.PanNumber,
 	}).Error
 }
 
