@@ -12,13 +12,13 @@ type towerSocietyInfoService struct {
 	towerId uuid.UUID
 }
 
-func (ts *towerSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
+func (s *towerSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
 	// fetch from db and return
 	tower := models.Tower{
-		Id: ts.towerId,
+		Id: s.towerId,
 	}
 
-	err := ts.db.First(&tower).Error
+	err := s.db.First(&tower).Error
 	if err != nil {
 		return nil, err
 	}

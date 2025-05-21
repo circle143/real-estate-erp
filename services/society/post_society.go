@@ -16,13 +16,13 @@ type hCreateSociety struct {
 	CoverPhoto string
 }
 
-func (cs *hCreateSociety) execute(db *gorm.DB, orgId string) (*models.Society, error) {
+func (h *hCreateSociety) execute(db *gorm.DB, orgId string) (*models.Society, error) {
 	society := models.Society{
-		ReraNumber: cs.ReraNumber,
+		ReraNumber: h.ReraNumber,
 		OrgId:      uuid.MustParse(orgId),
-		Name:       cs.Name,
-		Address:    cs.Address,
-		CoverPhoto: cs.CoverPhoto,
+		Name:       h.Name,
+		Address:    h.Address,
+		CoverPhoto: h.CoverPhoto,
 	}
 
 	result := db.Create(&society)

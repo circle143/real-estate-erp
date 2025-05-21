@@ -14,7 +14,7 @@ import (
 // hGetAllOrganizations is getAllOrganizations handler
 type hGetAllOrganizations struct{}
 
-func (gao *hGetAllOrganizations) execute(db *gorm.DB, cursor string) (*custom.PaginatedData, error) {
+func (h *hGetAllOrganizations) execute(db *gorm.DB, cursor string) (*custom.PaginatedData, error) {
 	var orgData []models.Organization
 	query := db.Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
@@ -33,11 +33,11 @@ func (gao *hGetAllOrganizations) execute(db *gorm.DB, cursor string) (*custom.Pa
 	return common.CreatePaginatedResponse(&orgData), nil
 }
 
-func (os *organizationService) getAllOrganizations(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) getAllOrganizations(w http.ResponseWriter, r *http.Request) {
 	cursor := r.URL.Query().Get("cursor")
 
 	organizations := hGetAllOrganizations{}
-	res, err := organizations.execute(os.db, cursor)
+	res, err := organizations.execute(s.db, cursor)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -52,7 +52,7 @@ func (os *organizationService) getAllOrganizations(w http.ResponseWriter, r *htt
 
 type hGetAllOrganizationUsers struct{}
 
-func (gou *hGetAllOrganizationUsers) execute(db *gorm.DB, orgId, cursor string) (*custom.PaginatedData, error) {
+func (h *hGetAllOrganizationUsers) execute(db *gorm.DB, orgId, cursor string) (*custom.PaginatedData, error) {
 	var userData []models.User
 	query := db.Where("org_id = ?", orgId).Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
@@ -71,12 +71,12 @@ func (gou *hGetAllOrganizationUsers) execute(db *gorm.DB, orgId, cursor string) 
 	return common.CreatePaginatedResponse(&userData), nil
 }
 
-func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	cursor := r.URL.Query().Get("cursor")
 
 	users := hGetAllOrganizationUsers{}
-	res, err := users.execute(os.db, orgId, cursor)
+	res, err := users.execute(s.db, orgId, cursor)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -91,7 +91,7 @@ func (os *organizationService) getAllOrganizationUsers(w http.ResponseWriter, r 
 
 type hGetCurrentUserOrganization struct{}
 
-func (gou *hGetCurrentUserOrganization) execute(db *gorm.DB, orgId string) (*models.Organization, error) {
+func (h *hGetCurrentUserOrganization) execute(db *gorm.DB, orgId string) (*models.Organization, error) {
 	organization := models.Organization{
 		Id: uuid.MustParse(orgId),
 	}
@@ -100,11 +100,11 @@ func (gou *hGetCurrentUserOrganization) execute(db *gorm.DB, orgId string) (*mod
 	return &organization, err
 }
 
-func (os *organizationService) getCurrentUserOrganization(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) getCurrentUserOrganization(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 
 	org := hGetCurrentUserOrganization{}
-	res, err := org.execute(os.db, orgId)
+	res, err := org.execute(s.db, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

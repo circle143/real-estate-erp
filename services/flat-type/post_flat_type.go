@@ -19,27 +19,27 @@ type hCreateFlatType struct {
 	SuperArea      float64 `validate:"required"`
 }
 
-func (cft *hCreateFlatType) getBuiltUpArea() decimal.Decimal {
-	return decimal.NewFromFloat(cft.ReraCarpetArea).Add(decimal.NewFromFloat(cft.BalconyArea))
+func (h *hCreateFlatType) getBuiltUpArea() decimal.Decimal {
+	return decimal.NewFromFloat(h.ReraCarpetArea).Add(decimal.NewFromFloat(h.BalconyArea))
 }
 
-func (cft *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models.FlatType, error) {
+func (h *hCreateFlatType) execute(db *gorm.DB, orgId, society string) (*models.FlatType, error) {
 	flatType := models.FlatType{
 		OrgId:          uuid.MustParse(orgId),
 		SocietyId:      society,
-		Name:           cft.Name,
-		Accommodation:  cft.Accommodation,
-		ReraCarpetArea: decimal.NewFromFloat(cft.ReraCarpetArea),
-		BalconyArea:    decimal.NewFromFloat(cft.BalconyArea),
-		BuiltUpArea:    cft.getBuiltUpArea(),
-		SuperArea:      decimal.NewFromFloat(cft.SuperArea),
+		Name:           h.Name,
+		Accommodation:  h.Accommodation,
+		ReraCarpetArea: decimal.NewFromFloat(h.ReraCarpetArea),
+		BalconyArea:    decimal.NewFromFloat(h.BalconyArea),
+		BuiltUpArea:    h.getBuiltUpArea(),
+		SuperArea:      decimal.NewFromFloat(h.SuperArea),
 	}
 
 	err := db.Create(&flatType).Error
 	return &flatType, err
 }
 
-func (fts *flatTypeService) createFlatType(w http.ResponseWriter, r *http.Request) {
+func (s *flatTypeService) createFlatType(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
@@ -48,7 +48,7 @@ func (fts *flatTypeService) createFlatType(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	flatType, err := reqBody.execute(fts.db, orgId, societyRera)
+	flatType, err := reqBody.execute(s.db, orgId, societyRera)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

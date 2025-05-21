@@ -15,7 +15,7 @@ import (
 
 type hGetAllTowers struct{}
 
-func (gat *hGetAllTowers) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
+func (h *hGetAllTowers) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
 	var towerData []models.Tower
 
 	query := db.Where("org_id = ? and society_id = ?", orgId, society).Order("created_at DESC").Limit(custom.LIMIT + 1)
@@ -136,13 +136,13 @@ func (gat *hGetAllTowers) execute(db *gorm.DB, orgId, society, cursor string) (*
 	return common.CreatePaginatedResponse(&towerData), nil
 }
 
-func (ts *towerService) getAllTowers(w http.ResponseWriter, r *http.Request) {
+func (s *towerService) getAllTowers(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	cursor := r.URL.Query().Get("cursor")
 	societyRera := chi.URLParam(r, "society")
 
 	tower := hGetAllTowers{}
-	res, err := tower.execute(ts.db, orgId, societyRera, cursor)
+	res, err := tower.execute(s.db, orgId, societyRera, cursor)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

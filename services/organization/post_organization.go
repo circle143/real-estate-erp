@@ -16,16 +16,16 @@ type hCreateOrganization struct {
 	Email string `validate:"required,email"`
 }
 
-func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, userPool string) (*models.Organization, error) {
+func (h *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, userPool string) (*models.Organization, error) {
 	organization := models.Organization{
 		Status: custom.ACTIVE,
-		Name:   co.Name,
+		Name:   h.Name,
 	}
 
 	// perform db transaction for atomicity
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// check if user exists or not
-		if userExists(cognito, co.Email, userPool) {
+		if userExists(cognito, h.Email, userPool) {
 			return &custom.RequestError{
 				Status:  http.StatusBadRequest,
 				Message: "User already exists.",
@@ -40,8 +40,8 @@ func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprov
 
 		// create user
 		result = tx.Create(&models.User{
-			Name:  co.Email,
-			Email: co.Email,
+			Name:  h.Email,
+			Email: h.Email,
 			OrgId: organization.Id,
 			Role:  custom.ORGADMIN,
 		})
@@ -50,17 +50,17 @@ func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprov
 		}
 
 		// create user credentials
-		err := createUserInCognito(cognito, co.Email, organization.Id.String(), userPool)
+		err := createUserInCognito(cognito, h.Email, organization.Id.String(), userPool)
 		if err != nil {
 			return err
 		}
 
 		// add user to a group
-		err = addUserToGroup(cognito, co.Email, string(custom.ORGADMIN), userPool)
+		err = addUserToGroup(cognito, h.Email, string(custom.ORGADMIN), userPool)
 		if err != nil {
 			// clean up from cognito
 			go func() {
-				err := deleteUserFromCognito(cognito, co.Email, userPool)
+				err := deleteUserFromCognito(cognito, h.Email, userPool)
 				if err != nil {
 					return
 				}
@@ -76,13 +76,13 @@ func (co *hCreateOrganization) execute(db *gorm.DB, cognito *cognitoidentityprov
 	return &organization, nil
 }
 
-func (os *organizationService) createOrganization(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) createOrganization(w http.ResponseWriter, r *http.Request) {
 	reqBody := payload.ValidateAndDecodeRequest[hCreateOrganization](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	org, err := reqBody.execute(os.db, os.cognito, os.userPool)
+	org, err := reqBody.execute(s.db, s.cognito, s.userPool)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -101,10 +101,10 @@ type hAddUserToOrganization struct {
 	Email string `validate:"required,email"`
 }
 
-func (au *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, orgId, userPool string) error {
+func (h *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, orgId, userPool string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		// check if user exists or not
-		if userExists(cognito, au.Email, userPool) {
+		if userExists(cognito, h.Email, userPool) {
 			return &custom.RequestError{
 				Status:  http.StatusBadRequest,
 				Message: "User already exists.",
@@ -114,8 +114,8 @@ func (au *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityp
 		// create user
 		result := db.Create(&models.User{
 			OrgId: uuid.MustParse(orgId),
-			Name:  au.Email,
-			Email: au.Email,
+			Name:  h.Email,
+			Email: h.Email,
 			Role:  custom.ORGUSER,
 		})
 		if result.Error != nil {
@@ -123,17 +123,17 @@ func (au *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityp
 		}
 
 		// create user credentials
-		err := createUserInCognito(cognito, au.Email, orgId, userPool)
+		err := createUserInCognito(cognito, h.Email, orgId, userPool)
 		if err != nil {
 			return err
 		}
 
 		// add user to a group
-		err = addUserToGroup(cognito, au.Email, string(custom.ORGUSER), userPool)
+		err = addUserToGroup(cognito, h.Email, string(custom.ORGUSER), userPool)
 		if err != nil {
 			// clean up from cognito
 			go func() {
-				err := deleteUserFromCognito(cognito, au.Email, userPool)
+				err := deleteUserFromCognito(cognito, h.Email, userPool)
 				if err != nil {
 					return
 				}
@@ -145,14 +145,14 @@ func (au *hAddUserToOrganization) execute(db *gorm.DB, cognito *cognitoidentityp
 	})
 }
 
-func (os *organizationService) addUserToOrganization(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) addUserToOrganization(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	reqBody := payload.ValidateAndDecodeRequest[hAddUserToOrganization](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	err := reqBody.execute(os.db, os.cognito, orgId, os.userPool)
+	err := reqBody.execute(s.db, s.cognito, orgId, s.userPool)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

@@ -12,7 +12,7 @@ import (
 
 type hDeleteTower struct{}
 
-func (dt *hDeleteTower) execute(db *gorm.DB, orgId, society, tower string) error {
+func (h *hDeleteTower) execute(db *gorm.DB, orgId, society, tower string) error {
 	return db.
 		Model(&models.Tower{
 			Id: uuid.MustParse(tower),
@@ -21,13 +21,13 @@ func (dt *hDeleteTower) execute(db *gorm.DB, orgId, society, tower string) error
 		Delete(&models.Tower{}).Error
 }
 
-func (ts *towerService) deleteTower(w http.ResponseWriter, r *http.Request) {
+func (s *towerService) deleteTower(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	towerId := chi.URLParam(r, "tower")
 	societyRera := chi.URLParam(r, "society")
 
 	tower := hDeleteTower{}
-	err := tower.execute(ts.db, orgId, societyRera, towerId)
+	err := tower.execute(s.db, orgId, societyRera, towerId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

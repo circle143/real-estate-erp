@@ -13,13 +13,13 @@ import (
 
 type hDeleteFlat struct{}
 
-func (df *hDeleteFlat) validate(db *gorm.DB, orgId, societyRera, flatId string) error {
+func (h *hDeleteFlat) validate(db *gorm.DB, orgId, societyRera, flatId string) error {
 	flatSocietyInfo := CreateFlatSocietyInfoService(db, uuid.MustParse(flatId))
 	return common.IsSameSociety(flatSocietyInfo, orgId, societyRera)
 }
 
-func (df *hDeleteFlat) execute(db *gorm.DB, orgId, societyRera, flatId string) error {
-	err := df.validate(db, orgId, societyRera, flatId)
+func (h *hDeleteFlat) execute(db *gorm.DB, orgId, societyRera, flatId string) error {
+	err := h.validate(db, orgId, societyRera, flatId)
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 
 type hDeleteSociety struct{}
 
-func (ds *hDeleteSociety) execute(db *gorm.DB, society, orgId string) error {
+func (h *hDeleteSociety) execute(db *gorm.DB, society, orgId string) error {
 	societyModel := models.Society{
 		ReraNumber: society,
 		OrgId:      uuid.MustParse(orgId),

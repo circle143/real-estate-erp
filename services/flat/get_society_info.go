@@ -13,17 +13,17 @@ type flatSocietyInfoService struct {
 	flatId uuid.UUID
 }
 
-func (fs *flatSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
+func (s *flatSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
 	flat := models.Flat{
-		Id: fs.flatId,
+		Id: s.flatId,
 	}
 
-	err := fs.db.First(&flat).Error
+	err := s.db.First(&flat).Error
 	if err != nil {
 		return nil, err
 	}
 
-	towerSocietyInfo := tower.CreateTowerSocietyInfoService(fs.db, flat.TowerId)
+	towerSocietyInfo := tower.CreateTowerSocietyInfoService(s.db, flat.TowerId)
 	return towerSocietyInfo.GetSocietyInfo()
 }
 

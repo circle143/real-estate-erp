@@ -15,7 +15,7 @@ import (
 
 type hGetAllSocietyFlats struct{}
 
-func (gsf *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, filter string) (*custom.PaginatedData, error) {
+func (h *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, filter string) (*custom.PaginatedData, error) {
 	var flatData []models.Flat
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
@@ -108,7 +108,7 @@ func (s *flatService) getAllSocietyFlats(w http.ResponseWriter, r *http.Request)
 
 type hGetAllTowerFlats struct{}
 
-func (gtf *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, cursor, filter string) (*custom.PaginatedData, error) {
+func (h *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, cursor, filter string) (*custom.PaginatedData, error) {
 	var flatData []models.Flat
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").

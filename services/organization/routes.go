@@ -5,11 +5,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (os *organizationService) GetBasePath() string {
+func (s *organizationService) GetBasePath() string {
 	return "/organization"
 }
 
-func (os *organizationService) GetRoutes() *chi.Mux {
+func (s *organizationService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
 
@@ -17,9 +17,9 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 	mux.Group(func(router chi.Router) {
 		router.Use(authorizationMiddleware.AdminAuthorization)
 
-		router.Post("/", os.createOrganization)
-		router.Patch("/{orgId}/status", os.updateOrganizationStatus)
-		router.Get("/", os.getAllOrganizations)
+		router.Post("/", s.createOrganization)
+		router.Patch("/{orgId}/status", s.updateOrganizationStatus)
+		router.Get("/", s.getAllOrganizations)
 	})
 
 	// organization admin routes
@@ -27,11 +27,11 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/user", os.addUserToOrganization)
-		router.Patch("/details", os.updateOrganizationDetails)
-		router.Patch("/user/{userEmail}", os.updateOrganizationUserRole)
-		router.Get("/users", os.getAllOrganizationUsers)
-		router.Delete("/user/{userEmail}", os.removeUserFromOrganization)
+		router.Post("/user", s.addUserToOrganization)
+		router.Patch("/details", s.updateOrganizationDetails)
+		router.Patch("/user/{userEmail}", s.updateOrganizationUserRole)
+		router.Get("/users", s.getAllOrganizationUsers)
+		router.Delete("/user/{userEmail}", s.removeUserFromOrganization)
 	})
 
 	// organization user and admin route
@@ -39,7 +39,7 @@ func (os *organizationService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Get("/self", os.getCurrentUserOrganization)
+		router.Get("/self", s.getCurrentUserOrganization)
 	})
 
 	return mux

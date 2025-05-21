@@ -14,7 +14,7 @@ import (
 
 type hGetAllSocieties struct{}
 
-func (gas *hGetAllSocieties) execute(db *gorm.DB, orgId, cursor string) (*custom.PaginatedData, error) {
+func (h *hGetAllSocieties) execute(db *gorm.DB, orgId, cursor string) (*custom.PaginatedData, error) {
 	var societyData []models.Society
 	query := db.Where("org_id = ?", orgId).Order("created_at DESC").Limit(custom.LIMIT + 1)
 	if strings.TrimSpace(cursor) != "" {
@@ -103,7 +103,7 @@ func (s *societyService) getAllSocieties(w http.ResponseWriter, r *http.Request)
 
 type hGetSocietyById struct{}
 
-func (gas *hGetSocietyById) execute(db *gorm.DB, orgId, society string) (*models.Society, error) {
+func (h *hGetSocietyById) execute(db *gorm.DB, orgId, society string) (*models.Society, error) {
 	societyData := models.Society{
 		OrgId:      uuid.MustParse(orgId),
 		ReraNumber: society,

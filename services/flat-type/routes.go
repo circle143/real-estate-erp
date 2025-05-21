@@ -5,11 +5,11 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (fts *flatTypeService) GetBasePath() string {
+func (s *flatTypeService) GetBasePath() string {
 	return "/society/{society}/flat-type"
 }
 
-func (fts *flatTypeService) GetRoutes() *chi.Mux {
+func (s *flatTypeService) GetRoutes() *chi.Mux {
 	mux := chi.NewMux()
 	authorizationMiddleware := &middleware.AuthorizationMiddleware{}
 
@@ -18,9 +18,9 @@ func (fts *flatTypeService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", fts.createFlatType)
+		router.Post("/", s.createFlatType)
 		//router.Patch("/{flatType}", fts.updateFlatType)
-		router.Delete("/{flatType}", fts.deleteFlatType)
+		router.Delete("/{flatType}", s.deleteFlatType)
 	})
 
 	// org admin and user
@@ -28,7 +28,7 @@ func (fts *flatTypeService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Get("/", fts.getAllFlatTypes)
+		router.Get("/", s.getAllFlatTypes)
 	})
 
 	return mux

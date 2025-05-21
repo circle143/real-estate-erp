@@ -13,7 +13,7 @@ import (
 
 type hGetAllFlatTypes struct{}
 
-func (gft *hGetAllFlatTypes) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
+func (h *hGetAllFlatTypes) execute(db *gorm.DB, orgId, society, cursor string) (*custom.PaginatedData, error) {
 	var flatTypeData []models.FlatType
 
 	query := db.Where("org_id = ? and society_id = ?", orgId, society).Order("created_at DESC").Limit(custom.LIMIT + 1)
@@ -32,13 +32,13 @@ func (gft *hGetAllFlatTypes) execute(db *gorm.DB, orgId, society, cursor string)
 	return common.CreatePaginatedResponse(&flatTypeData), nil
 }
 
-func (fts *flatTypeService) getAllFlatTypes(w http.ResponseWriter, r *http.Request) {
+func (s *flatTypeService) getAllFlatTypes(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	cursor := r.URL.Query().Get("cursor")
 	societyRera := chi.URLParam(r, "society")
 
 	flatType := hGetAllFlatTypes{}
-	res, err := flatType.execute(fts.db, orgId, societyRera, cursor)
+	res, err := flatType.execute(s.db, orgId, societyRera, cursor)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

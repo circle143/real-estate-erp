@@ -18,8 +18,8 @@ type hUpdateSocietyDetails struct {
 	CoverPhoto string
 }
 
-func (usd *hUpdateSocietyDetails) validate() error {
-	if strings.TrimSpace(usd.Name) == "" && strings.TrimSpace(usd.CoverPhoto) == "" && strings.TrimSpace(usd.Address) == "" && strings.TrimSpace(usd.ReraNumber) == "" {
+func (h *hUpdateSocietyDetails) validate() error {
+	if strings.TrimSpace(h.Name) == "" && strings.TrimSpace(h.CoverPhoto) == "" && strings.TrimSpace(h.Address) == "" && strings.TrimSpace(h.ReraNumber) == "" {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid field values to update.",
@@ -28,8 +28,8 @@ func (usd *hUpdateSocietyDetails) validate() error {
 	return nil
 }
 
-func (usd *hUpdateSocietyDetails) execute(db *gorm.DB, society, orgId string) error {
-	err := usd.validate()
+func (h *hUpdateSocietyDetails) execute(db *gorm.DB, society, orgId string) error {
+	err := h.validate()
 	if err != nil {
 		return err
 	}
@@ -40,10 +40,10 @@ func (usd *hUpdateSocietyDetails) execute(db *gorm.DB, society, orgId string) er
 	}
 
 	return db.Model(&societyModel).Updates(models.Society{
-		ReraNumber: usd.ReraNumber,
-		Name:       usd.Name,
-		Address:    usd.Address,
-		CoverPhoto: usd.CoverPhoto,
+		ReraNumber: h.ReraNumber,
+		Name:       h.Name,
+		Address:    h.Address,
+		CoverPhoto: h.CoverPhoto,
 	}).Error
 }
 

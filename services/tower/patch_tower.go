@@ -14,18 +14,18 @@ type hUpdateTower struct {
 	FloorCount int `validate:"required"`
 }
 
-func (ut *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error {
+func (h *hUpdateTower) execute(db *gorm.DB, orgId, society, tower string) error {
 	return db.
 		Model(&models.Tower{
 			Id: uuid.MustParse(tower),
 		}).
 		Where("org_id = ? and society_id = ?", orgId, society).
 		Updates(models.Tower{
-			FloorCount: ut.FloorCount,
+			FloorCount: h.FloorCount,
 		}).Error
 }
 
-func (ts *towerService) updateTower(w http.ResponseWriter, r *http.Request) {
+func (s *towerService) updateTower(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	towerId := chi.URLParam(r, "tower")
 	societyRera := chi.URLParam(r, "society")
@@ -35,7 +35,7 @@ func (ts *towerService) updateTower(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := reqBody.execute(ts.db, orgId, societyRera, towerId)
+	err := reqBody.execute(s.db, orgId, societyRera, towerId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

@@ -12,12 +12,12 @@ type flatTypeSocietyInfoService struct {
 	flatTypeId uuid.UUID
 }
 
-func (fts *flatTypeSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
+func (s *flatTypeSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, error) {
 	flatType := models.FlatType{
-		Id: fts.flatTypeId,
+		Id: s.flatTypeId,
 	}
 
-	err := fts.db.First(&flatType).Error
+	err := s.db.First(&flatType).Error
 	if err != nil {
 		return nil, err
 	}

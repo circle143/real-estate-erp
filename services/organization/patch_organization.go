@@ -17,8 +17,8 @@ type hUpdateOrganizationStatus struct {
 	Status string `validate:"required"`
 }
 
-func (uos *hUpdateOrganizationStatus) validate() error {
-	status := custom.OrganizationStatus(uos.Status)
+func (h *hUpdateOrganizationStatus) validate() error {
+	status := custom.OrganizationStatus(h.Status)
 	if !status.IsValid() {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
@@ -29,25 +29,25 @@ func (uos *hUpdateOrganizationStatus) validate() error {
 	return nil
 }
 
-func (uos *hUpdateOrganizationStatus) execute(db *gorm.DB, orgId string) error {
-	err := uos.validate()
+func (h *hUpdateOrganizationStatus) execute(db *gorm.DB, orgId string) error {
+	err := h.validate()
 	if err != nil {
 		return err
 	}
 	org := models.Organization{
 		Id: uuid.MustParse(orgId),
 	}
-	return db.Model(&org).Update("status", custom.OrganizationStatus(uos.Status)).Error
+	return db.Model(&org).Update("status", custom.OrganizationStatus(h.Status)).Error
 }
 
-func (os *organizationService) updateOrganizationStatus(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) updateOrganizationStatus(w http.ResponseWriter, r *http.Request) {
 	orgId := chi.URLParam(r, "orgId")
 	reqBody := payload.ValidateAndDecodeRequest[hUpdateOrganizationStatus](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	err := reqBody.execute(os.db, orgId)
+	err := reqBody.execute(s.db, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -67,9 +67,9 @@ type hUpdateOrganizationDetails struct {
 	GST  string `validate:"omitempty,gst"`
 }
 
-func (uod *hUpdateOrganizationDetails) validate() error {
+func (h *hUpdateOrganizationDetails) validate() error {
 	// check if at least one of the value is present or not
-	if strings.TrimSpace(uod.Name) == "" && strings.TrimSpace(uod.Logo) == "" && strings.TrimSpace(uod.GST) == "" {
+	if strings.TrimSpace(h.Name) == "" && strings.TrimSpace(h.Logo) == "" && strings.TrimSpace(h.GST) == "" {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid field values to update.",
@@ -79,8 +79,8 @@ func (uod *hUpdateOrganizationDetails) validate() error {
 	return nil
 }
 
-func (uod *hUpdateOrganizationDetails) execute(db *gorm.DB, orgId string) error {
-	err := uod.validate()
+func (h *hUpdateOrganizationDetails) execute(db *gorm.DB, orgId string) error {
+	err := h.validate()
 	if err != nil {
 		return err
 	}
@@ -90,21 +90,21 @@ func (uod *hUpdateOrganizationDetails) execute(db *gorm.DB, orgId string) error 
 	}
 
 	return db.Model(&org).Updates(models.Organization{
-		Name: uod.Name,
-		Logo: uod.Logo,
-		Gst:  uod.GST,
+		Name: h.Name,
+		Logo: h.Logo,
+		Gst:  h.GST,
 	}).Error
 
 }
 
-func (os *organizationService) updateOrganizationDetails(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) updateOrganizationDetails(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	reqBody := payload.ValidateAndDecodeRequest[hUpdateOrganizationDetails](w, r)
 	if reqBody == nil {
 		return
 	}
 
-	err := reqBody.execute(os.db, orgId)
+	err := reqBody.execute(s.db, orgId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
@@ -121,8 +121,8 @@ type hUpdateOrganizationUserRole struct {
 	Role string
 }
 
-func (uou *hUpdateOrganizationUserRole) validate() error {
-	role := custom.UserRole(uou.Role)
+func (h *hUpdateOrganizationUserRole) validate() error {
+	role := custom.UserRole(h.Role)
 	if !role.IsValid() {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
@@ -133,8 +133,8 @@ func (uou *hUpdateOrganizationUserRole) validate() error {
 	return nil
 }
 
-func (uou *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
-	err := uou.validate()
+func (h *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
+	err := h.validate()
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (uou *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoide
 			Email: user,
 		}
 		// update user
-		result := tx.Model(&userModel).Where("org_id = ?", orgId).Update("role", custom.UserRole(uou.Role))
+		result := tx.Model(&userModel).Where("org_id = ?", orgId).Update("role", custom.UserRole(h.Role))
 		if result.Error != nil {
 			return result.Error
 		}
@@ -162,12 +162,12 @@ func (uou *hUpdateOrganizationUserRole) execute(db *gorm.DB, cognito *cognitoide
 		}
 
 		// add user to a new group
-		err = addUserToGroup(cognito, user, uou.Role, userPool)
+		err = addUserToGroup(cognito, user, h.Role, userPool)
 		return err
 	})
 }
 
-func (os *organizationService) updateOrganizationUserRole(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) updateOrganizationUserRole(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	user := chi.URLParam(r, "userEmail")
 	reqBody := payload.ValidateAndDecodeRequest[hUpdateOrganizationUserRole](w, r)
@@ -175,7 +175,7 @@ func (os *organizationService) updateOrganizationUserRole(w http.ResponseWriter,
 		return
 	}
 
-	err := reqBody.execute(os.db, os.cognito, user, orgId, os.userPool)
+	err := reqBody.execute(s.db, s.cognito, user, orgId, s.userPool)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

@@ -15,12 +15,12 @@ type hCreateTower struct {
 	Name       string `validate:"required"`
 }
 
-func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tower, error) {
+func (h *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tower, error) {
 	tower := models.Tower{
 		OrgId:      uuid.MustParse(orgId),
 		SocietyId:  society,
-		FloorCount: ct.FloorCount,
-		Name:       ct.Name,
+		FloorCount: h.FloorCount,
+		Name:       h.Name,
 	}
 
 	result := db.Create(&tower)
@@ -31,7 +31,7 @@ func (ct *hCreateTower) execute(db *gorm.DB, orgId, society string) (*models.Tow
 	return &tower, nil
 }
 
-func (ts *towerService) createTower(w http.ResponseWriter, r *http.Request) {
+func (s *towerService) createTower(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
@@ -40,7 +40,7 @@ func (ts *towerService) createTower(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tower, err := reqBody.execute(ts.db, orgId, societyRera)
+	tower, err := reqBody.execute(s.db, orgId, societyRera)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

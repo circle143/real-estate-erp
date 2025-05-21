@@ -12,7 +12,7 @@ import (
 
 type hRemoveUserFromOrganization struct{}
 
-func (ruo *hRemoveUserFromOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
+func (h *hRemoveUserFromOrganization) execute(db *gorm.DB, cognito *cognitoidentityprovider.Client, user, orgId, userPool string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		userModel := models.User{
 			Email: user,
@@ -31,12 +31,12 @@ func (ruo *hRemoveUserFromOrganization) execute(db *gorm.DB, cognito *cognitoide
 	})
 }
 
-func (os *organizationService) removeUserFromOrganization(w http.ResponseWriter, r *http.Request) {
+func (s *organizationService) removeUserFromOrganization(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	user := chi.URLParam(r, "userEmail")
 
 	organization := hRemoveUserFromOrganization{}
-	err := organization.execute(os.db, os.cognito, user, orgId, os.userPool)
+	err := organization.execute(s.db, s.cognito, user, orgId, s.userPool)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

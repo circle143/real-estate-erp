@@ -12,7 +12,7 @@ import (
 
 type hDeleteFlatType struct{}
 
-func (dft *hDeleteFlatType) execute(db *gorm.DB, orgId, society, flatType string) error {
+func (h *hDeleteFlatType) execute(db *gorm.DB, orgId, society, flatType string) error {
 	return db.
 		Model(&models.FlatType{
 			Id: uuid.MustParse(flatType),
@@ -21,13 +21,13 @@ func (dft *hDeleteFlatType) execute(db *gorm.DB, orgId, society, flatType string
 		Delete(&models.FlatType{}).Error
 }
 
-func (fts *flatTypeService) deleteFlatType(w http.ResponseWriter, r *http.Request) {
+func (s *flatTypeService) deleteFlatType(w http.ResponseWriter, r *http.Request) {
 	flatTypeId := chi.URLParam(r, "flatType")
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
 
 	flatType := hDeleteFlatType{}
-	err := flatType.execute(fts.db, orgId, societyRera, flatTypeId)
+	err := flatType.execute(s.db, orgId, societyRera, flatTypeId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

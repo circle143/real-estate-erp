@@ -21,9 +21,9 @@ type hCreateFlat struct {
 	Facing      string `validate:"required"`
 }
 
-func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
+func (h *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 	// validate facing
-	facing := custom.Facing(cf.Facing)
+	facing := custom.Facing(h.Facing)
 	if !facing.IsValid() {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
@@ -32,14 +32,14 @@ func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 	}
 
 	// validate correct flat type
-	flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(cf.FlatType))
+	flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(h.FlatType))
 	err := common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
 	if err != nil {
 		return err
 	}
 
 	// validate tower belongs to correct society and organization
-	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(cf.Tower))
+	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(h.Tower))
 	err = common.IsSameSociety(towerSocietyInfoService, orgId, society)
 	if err != nil {
 		return err
@@ -47,7 +47,7 @@ func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 
 	var towerModel models.Tower
 	err = db.Where(&models.Tower{
-		Id:        uuid.MustParse(cf.Tower),
+		Id:        uuid.MustParse(h.Tower),
 		OrgId:     uuid.MustParse(orgId),
 		SocietyId: society,
 	}).First(&towerModel).Error
@@ -56,7 +56,7 @@ func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 	}
 
 	// validate floor number
-	if cf.FloorNumber > towerModel.FloorCount {
+	if h.FloorNumber > towerModel.FloorCount {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid floor number.",
@@ -66,18 +66,18 @@ func (cf *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 	return nil
 }
 
-func (cf *hCreateFlat) execute(db *gorm.DB, orgId, society string) (*models.Flat, error) {
-	err := cf.validate(db, orgId, society)
+func (h *hCreateFlat) execute(db *gorm.DB, orgId, society string) (*models.Flat, error) {
+	err := h.validate(db, orgId, society)
 	if err != nil {
 		return nil, err
 	}
 
 	flat := models.Flat{
-		TowerId:     uuid.MustParse(cf.Tower),
-		FlatTypeId:  uuid.MustParse(cf.FlatType),
-		Name:        cf.Name,
-		FloorNumber: cf.FloorNumber,
-		Facing:      custom.Facing(cf.Facing),
+		TowerId:     uuid.MustParse(h.Tower),
+		FlatTypeId:  uuid.MustParse(h.FlatType),
+		Name:        h.Name,
+		FloorNumber: h.FloorNumber,
+		Facing:      custom.Facing(h.Facing),
 	}
 
 	result := db.Create(&flat)
