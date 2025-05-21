@@ -11,7 +11,9 @@ import (
 )
 
 type hUpdateBrokerDetails struct {
-	Name string `validate:"required"`
+	Name         string `validate:"required"`
+	PanNumber    string `validate:"required,pan"`
+	AadharNumber string `validate:"required,aadhar"`
 }
 
 //func (h *hUpdateBrokerDetails) validate(db *gorm.DB, orgId, societyRera, brokerId string) error {
@@ -26,7 +28,9 @@ func (h *hUpdateBrokerDetails) execute(db *gorm.DB, orgId, societyRera, brokerId
 		}).
 		Where("org_id = ? and society_id = ?", orgId, societyRera).
 		Updates(models.Broker{
-			Name: h.Name,
+			Name:         h.Name,
+			PanNumber:    h.PanNumber,
+			AadharNumber: h.AadharNumber,
 		}).Error
 }
 
