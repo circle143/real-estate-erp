@@ -2,7 +2,6 @@ package charges
 
 import (
 	"circledigital.in/real-state-erp/models"
-	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
@@ -31,8 +30,8 @@ func (h *hUpdatePreferenceLocationChargePrice) execute(db *gorm.DB, orgId, socie
 			return err
 		}
 
-		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.PREFERENCELOCATIONCHARGE, price)
-		return priceHistoryUtil.AddNewPrice()
+		priceHistoryUtil := createPriceUtil(tx, chargeModel.Id, custom.PREFERENCELOCATIONCHARGE, price)
+		return priceHistoryUtil.addNewPrice()
 	})
 }
 
@@ -121,8 +120,8 @@ func (h *hUpdateOtherChargePrice) execute(db *gorm.DB, orgId, society, chargeId 
 			return err
 		}
 
-		priceHistoryUtil := common.CreatePriceUtil(tx, chargeModel.Id, custom.OTHERCHARGE, price)
-		return priceHistoryUtil.AddNewPrice()
+		priceHistoryUtil := createPriceUtil(tx, chargeModel.Id, custom.OTHERCHARGE, price)
+		return priceHistoryUtil.addNewPrice()
 	})
 }
 

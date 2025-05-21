@@ -1,4 +1,4 @@
-package common
+package charges
 
 import (
 	"circledigital.in/real-state-erp/models"
@@ -8,12 +8,12 @@ import (
 	"gorm.io/gorm"
 )
 
-type IPriceHistoryUtil interface {
-	AddInitialPrice() error // handles adding initial price
-	AddNewPrice() error     // handles populating active till and adding new price
+type iPriceHistoryUtil interface {
+	addInitialPrice() error // handles adding initial price
+	addNewPrice() error     // handles populating active till and adding new price
 }
 
-func CreatePriceUtil(db *gorm.DB, chargeId uuid.UUID, chargeType custom.PriceChargeType, price decimal.Decimal) IPriceHistoryUtil {
+func createPriceUtil(db *gorm.DB, chargeId uuid.UUID, chargeType custom.PriceChargeType, price decimal.Decimal) iPriceHistoryUtil {
 	if !chargeType.IsValid() {
 		return nil
 	}
@@ -33,7 +33,7 @@ type priceHistoryUtil struct {
 	price      decimal.Decimal
 }
 
-func (p *priceHistoryUtil) AddInitialPrice() error {
+func (p *priceHistoryUtil) addInitialPrice() error {
 	priceHistory := models.PriceHistory{
 		ChargeId:   p.chargeId,
 		ChargeType: p.chargeType,
@@ -42,7 +42,7 @@ func (p *priceHistoryUtil) AddInitialPrice() error {
 	return p.db.Create(&priceHistory).Error
 }
 
-func (p *priceHistoryUtil) AddNewPrice() error {
+func (p *priceHistoryUtil) addNewPrice() error {
 	var activePrice models.PriceHistory
 	err := p.db.
 		Where("charge_id = ? AND charge_type = ?", p.chargeId, p.chargeType).
