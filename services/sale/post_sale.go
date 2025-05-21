@@ -2,6 +2,7 @@ package sale
 
 import (
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/services/broker"
 	"circledigital.in/real-state-erp/services/flat"
 	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
 	"circledigital.in/real-state-erp/utils/common"
@@ -21,15 +22,36 @@ type hCreateSale struct {
 	BasicCost       float64           `validate:"required"`
 	OptionalCharges []string
 	CompanyBuyer    companyCustomerDetails `validate:"omitempty"`
+	BrokerId        string                 `validate:"required,uuid"`
 }
 
-func (ac *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
+func (h *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
 	// check type and validate
-	buyerType := saleBuyerType(ac.Type)
+	buyerType := saleBuyerType(h.Type)
 	if !buyerType.IsValid() {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid sale buyer type.",
+		}
+	}
+
+	if buyerType == user {
+		if len(h.Details) == 0 {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Missing buyer details.",
+			}
+		}
+		for _, detail := range h.Details {
+			err := detail.validate()
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		err := h.CompanyBuyer.validate()
+		if err != nil {
+			return err
 		}
 	}
 
@@ -39,33 +61,17 @@ func (ac *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) erro
 		return err
 	}
 
-	if buyerType == user {
-		if len(ac.Details) == 0 {
-			return &custom.RequestError{
-				Status:  http.StatusBadRequest,
-				Message: "Missing buyer details.",
-			}
-		}
-		for _, detail := range ac.Details {
-			err = detail.validate()
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		return ac.CompanyBuyer.validate()
-	}
-
-	return nil
+	brokerSocietyInfoService := broker.CreateBrokerSocietyInfoService(db, uuid.MustParse(h.BrokerId))
+	return common.IsSameSociety(brokerSocietyInfoService, orgId, society)
 }
 
-func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error {
-	err := ac.validate(db, orgId, society, flatId)
+func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error {
+	err := h.validate(db, orgId, society, flatId)
 	if err != nil {
 		return err
 	}
-	basicCost := decimal.NewFromFloat(ac.BasicCost)
-	buyerType := saleBuyerType(ac.Type)
+	basicCost := decimal.NewFromFloat(h.BasicCost)
+	buyerType := saleBuyerType(h.Type)
 
 	return db.Transaction(func(tx *gorm.DB) error {
 		flatModel := models.Flat{
@@ -108,7 +114,7 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		var optionalCharges []models.OtherCharge
 		err = tx.
 			Where("org_id = ? and society_id = ? and disable = false and optional = true", orgId, society).
-			Where("id in ?", ac.OptionalCharges).
+			Where("id in ?", h.OptionalCharges).
 			Find(&optionalCharges).Error
 		if err != nil {
 			return err
@@ -204,6 +210,7 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 			OrgId:          uuid.MustParse(orgId),
 			TotalPrice:     totalPrice,
 			PriceBreakdown: priceBreakdowns,
+			BrokerId:       uuid.MustParse(h.BrokerId),
 		}
 		err = tx.Create(&saleModel).Error
 		if err != nil {
@@ -211,8 +218,8 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		}
 
 		if buyerType == user {
-			customers := make([]*models.Customer, 0, len(ac.Details))
-			for _, d := range ac.Details {
+			customers := make([]*models.Customer, 0, len(h.Details))
+			for _, d := range h.Details {
 				customer := &models.Customer{
 					SaleId:           saleModel.Id,
 					Salutation:       custom.Salutation(d.Salutation),
@@ -241,11 +248,11 @@ func (ac *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error
 		} else {
 			companyBuyer := models.CompanyCustomer{
 				SaleId:       saleModel.Id,
-				Name:         ac.CompanyBuyer.Name,
-				CompanyPan:   ac.CompanyBuyer.CompanyPan,
-				CompanyGst:   ac.CompanyBuyer.CompanyGst,
-				AadharNumber: ac.CompanyBuyer.AadharNumber,
-				PanNumber:    ac.CompanyBuyer.PanNumber,
+				Name:         h.CompanyBuyer.Name,
+				CompanyPan:   h.CompanyBuyer.CompanyPan,
+				CompanyGst:   h.CompanyBuyer.CompanyGst,
+				AadharNumber: h.CompanyBuyer.AadharNumber,
+				PanNumber:    h.CompanyBuyer.PanNumber,
 			}
 
 			return tx.Create(&companyBuyer).Error

@@ -17,6 +17,8 @@ type Sale struct {
 	SocietyId       string                `gorm:"not null;index" json:"societyId"`
 	OrgId           uuid.UUID             `gorm:"not null;index" json:"orgId"`
 	Society         *Society              `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
+	BrokerId        uuid.UUID             `gorm:"not null;index" json:"brokerId"`
+	Broker          *Broker               `gorm:"foreignKey:BrokerId;not null;constraint:OnUpdate:CASCADE" json:"broker,omitempty"`
 	TotalPrice      decimal.Decimal       `gorm:"not null;type:numeric" json:"totalPrice"`
 	Paid            decimal.Decimal       `gorm:"-" json:"paid"` // used to compute paid amount during req lifecycle
 	Remaining       decimal.Decimal       `gorm:"-" json:"remaining"`

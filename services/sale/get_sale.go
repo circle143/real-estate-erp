@@ -208,6 +208,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 	err = db.Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
+		Preload("SaleDetail.Broker").
 		Joins("JOIN sales s ON s.flat_id = flats.id").
 		Where("flats.tower_id = ?", towerId).
 		Find(&soldFlats).Error

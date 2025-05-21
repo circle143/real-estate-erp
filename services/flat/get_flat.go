@@ -23,6 +23,7 @@ func (h *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, f
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
+		Preload("SaleDetail.Broker").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
@@ -116,6 +117,7 @@ func (h *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, cu
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
+		Preload("SaleDetail.Broker").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
@@ -210,6 +212,7 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
+		Preload("SaleDetail.Broker").
 		Order("flats.created_at DESC").
 		Limit(custom.LIMIT + 1)
 
