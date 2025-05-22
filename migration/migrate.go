@@ -24,6 +24,7 @@ func Migrate(db *gorm.DB) {
 		&models.SalePaymentStatus{},
 		&models.CompanyCustomer{},
 		&models.Broker{},
+		&models.Bank{},
 	)
 
 	//err := db.Migrator().DropTable(
