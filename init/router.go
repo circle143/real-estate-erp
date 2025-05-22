@@ -1,6 +1,7 @@
 package init
 
 import (
+	"circledigital.in/real-state-erp/services/broker"
 	"circledigital.in/real-state-erp/services/charges"
 	"circledigital.in/real-state-erp/services/flat"
 	flatType "circledigital.in/real-state-erp/services/flat-type"
@@ -31,6 +32,7 @@ var services = []serviceFactory{
 	sale.CreateSaleService,
 	charges.CreateChargesService,
 	paymentPlan.CreatePaymentPlanService,
+	broker.CreateBrokerService,
 }
 
 // handle400 returns custom responses for not found routes and not allowed methods
