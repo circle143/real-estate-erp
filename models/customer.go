@@ -15,7 +15,7 @@ type Customer struct {
 	LastName         string               `gorm:"not null" json:"lastName"`
 	DateOfBirth      custom.DateOnly      `gorm:"type:date;not null" json:"dateOfBirth"`
 	Gender           custom.Gender        `gorm:"not null" json:"gender"`
-	Photo            string               `gorm:"not null" json:"photo"`
+	Photo            string               `json:"photo"`
 	MaritalStatus    custom.MaritalStatus `gorm:"not null" json:"maritalStatus"`
 	Nationality      custom.Nationality   `gorm:"not null" json:"nationality"`
 	Email            string               `gorm:"not null" json:"email"`
