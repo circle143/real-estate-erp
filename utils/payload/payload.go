@@ -19,6 +19,7 @@ var customValidators = []validatorFactory{
 	validation.CreateGSTValidator,
 	validation.CreatePassportValidator,
 	validation.CreatePanValidator,
+	validation.CreateBankAccountNumberValidator,
 }
 
 // RegisterValidators register custom validators
