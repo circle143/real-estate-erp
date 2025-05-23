@@ -28,13 +28,16 @@ func Migrate(db *gorm.DB) {
 	)
 
 	//err := db.Migrator().DropTable(
-	//	&models.Organization{},
-	//	&models.User{},
-	//	&models.Society{},
-	//	&models.FlatType{},
-	//	&models.Tower{},
-	//	&models.Flat{},
-	//	&models.Customer{},
+	//	//&models.Organization{},
+	//	//&models.User{},
+	//	//&models.Society{},
+	//	//&models.FlatType{},
+	//	//&models.Tower{},
+	//	//&models.Flat{},
+	//	//&models.Customer{},
+	//	//&models.Sale{},
+	//	//&models.CompanyCustomer{},
+	//	&models.SalePaymentStatus{},
 	//)
 
 	if err != nil {
