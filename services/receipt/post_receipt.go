@@ -98,15 +98,9 @@ type hClearSaleReceipt struct {
 	BankId string `validate:"required,uuid"`
 }
 
-func (h *hClearSaleReceipt) validate(db *gorm.DB, orgId, society, saleId, receiptId string) error {
+func (h *hClearSaleReceipt) validate(db *gorm.DB, orgId, society, receiptId string) error {
 	receiptSocietyInfo := CreateReceiptSocietyInfoService(db, uuid.MustParse(receiptId))
 	err := common.IsSameSociety(receiptSocietyInfo, orgId, society)
-	if err != nil {
-		return err
-	}
-
-	saleSocietyInfo := sale.CreateSaleSocietyInfoService(db, uuid.MustParse(saleId))
-	err = common.IsSameSociety(saleSocietyInfo, orgId, society)
 	if err != nil {
 		return err
 	}
@@ -115,8 +109,8 @@ func (h *hClearSaleReceipt) validate(db *gorm.DB, orgId, society, saleId, receip
 	return common.IsSameSociety(bankSocietyInfo, orgId, society)
 }
 
-func (h *hClearSaleReceipt) execute(db *gorm.DB, orgId, society, saleId, receiptId string) (*models.ReceiptClear, error) {
-	err := h.validate(db, orgId, society, saleId, receiptId)
+func (h *hClearSaleReceipt) execute(db *gorm.DB, orgId, society, receiptId string) (*models.ReceiptClear, error) {
+	err := h.validate(db, orgId, society, receiptId)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +134,6 @@ func (h *hClearSaleReceipt) execute(db *gorm.DB, orgId, society, saleId, receipt
 func (s *receiptService) clearSaleReceipt(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
-	saleId := chi.URLParam(r, "saleId")
 	receiptId := chi.URLParam(r, "receiptId")
 
 	reqBody := payload.ValidateAndDecodeRequest[hClearSaleReceipt](w, r)
@@ -148,7 +141,7 @@ func (s *receiptService) clearSaleReceipt(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	receipt, err := reqBody.execute(s.db, orgId, societyRera, saleId, receiptId)
+	receipt, err := reqBody.execute(s.db, orgId, societyRera, receiptId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return

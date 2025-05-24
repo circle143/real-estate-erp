@@ -6,7 +6,7 @@ import (
 )
 
 func (s *receiptService) GetBasePath() string {
-	return "/society/{society}/sale/{saleId}/receipt"
+	return "/society/{society}/receipt"
 }
 
 func (s *receiptService) GetRoutes() *chi.Mux {
@@ -17,7 +17,7 @@ func (s *receiptService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", s.createSaleReceipt)
+		router.Post("/sale/{saleId}", s.createSaleReceipt)
 		router.Post("/{receiptId}/clear", s.clearSaleReceipt)
 	})
 
