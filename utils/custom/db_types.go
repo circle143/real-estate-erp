@@ -17,6 +17,33 @@ type PreferenceLocationChargesType string
 type PriceChargeType string
 type PaymentPlanScope string
 type PaymentPlanCondition string
+type ReceiptMode string
+
+const (
+	ONLINE     ReceiptMode = "online"
+	CASH       ReceiptMode = "cash"
+	CHEQUE     ReceiptMode = "cheque"
+	DD         ReceiptMode = "demand-draft"
+	ADJUSTMENT ReceiptMode = "adjustment"
+)
+
+func (s ReceiptMode) IsValid() bool {
+	switch s {
+	case ONLINE, CASH, CHEQUE, DD, ADJUSTMENT:
+		return true
+	default:
+		return false
+	}
+}
+
+func (s ReceiptMode) RequireBankDetails() bool {
+	switch s {
+	case ONLINE, CHEQUE, DD:
+		return true
+	default:
+		return false
+	}
+}
 
 const (
 	ACTIVE   OrganizationStatus = "active"
