@@ -19,6 +19,7 @@ func (s *receiptService) GetRoutes() *chi.Mux {
 
 		router.Post("/sale/{saleId}", s.createSaleReceipt)
 		router.Post("/{receiptId}/clear", s.clearSaleReceipt)
+		router.Get("/{receiptId}", s.getReceiptById)
 	})
 
 	return mux

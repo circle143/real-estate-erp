@@ -76,7 +76,7 @@ func (s *saleService) updateSaleCustomerDetails(w http.ResponseWriter, r *http.R
 	response.Error = false
 	response.Message = "Successfully updated customer details."
 
-	payload.EncodeJSON(w, http.StatusCreated, response)
+	payload.EncodeJSON(w, http.StatusOK, response)
 }
 
 type hUpdateCompanyCustomerSaleDetails struct {
@@ -130,5 +130,5 @@ func (s *saleService) updateSaleCompanyCustomerDetails(w http.ResponseWriter, r 
 	response.Error = false
 	response.Message = "Successfully updated customer details."
 
-	payload.EncodeJSON(w, http.StatusCreated, response)
+	payload.EncodeJSON(w, http.StatusOK, response)
 }

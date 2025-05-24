@@ -14,6 +14,7 @@ type SalePaid struct {
 type Sale struct {
 	Id              uuid.UUID             `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	FlatId          uuid.UUID             `gorm:"not null" json:"flatId"`
+	Flat            *Flat                 `gorm:"foreignKey:FlatId" json:"flat,omitempty"`
 	SocietyId       string                `gorm:"not null;index" json:"societyId"`
 	OrgId           uuid.UUID             `gorm:"not null;index" json:"orgId"`
 	Society         *Society              `gorm:"foreignKey:SocietyId,OrgId;references:ReraNumber,OrgId;not null;constraint:OnUpdate:CASCADE" json:"society,omitempty"`
@@ -27,6 +28,7 @@ type Sale struct {
 	UpdatedAt       time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`
 	Customers       []Customer            `gorm:"foreignKey:SaleId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"owners,omitempty"`
 	CompanyCustomer *CompanyCustomer      `gorm:"foreignKey:SaleId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"companyCustomer,omitempty"`
+	Receipts        []Receipt             `gorm:"foreignKey:SaleId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"receipts,omitempty"`
 	//PaymentStatus  []SalePaymentStatus   `gorm:"foreignKey:SaleId" json:"paymentStatus,omitempty"`
 	//DeletedAt      gorm.DeletedAt `gorm:"index"`
 }
