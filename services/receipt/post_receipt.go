@@ -106,7 +106,26 @@ func (h *hClearSaleReceipt) validate(db *gorm.DB, orgId, society, receiptId stri
 	}
 
 	bankSocietyInfo := bank.CreateBankSocietyInfoService(db, uuid.MustParse(h.BankId))
-	return common.IsSameSociety(bankSocietyInfo, orgId, society)
+	err = common.IsSameSociety(bankSocietyInfo, orgId, society)
+	if err != nil {
+		return err
+	}
+
+	receipt := models.Receipt{
+		Id: uuid.MustParse(receiptId),
+	}
+	err = db.Find(&receipt).Error
+	if err != nil {
+		return err
+	}
+
+	if receipt.Failed {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "This receipt is marked as failed and you can't clear it anymore.",
+		}
+	}
+	return nil
 }
 
 func (h *hClearSaleReceipt) execute(db *gorm.DB, orgId, society, receiptId string) (*models.ReceiptClear, error) {
