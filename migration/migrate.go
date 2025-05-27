@@ -21,7 +21,6 @@ func Migrate(db *gorm.DB) {
 		&models.Sale{},
 		&models.PaymentPlan{},
 		&models.TowerPaymentStatus{},
-		&models.SalePaymentStatus{},
 		&models.CompanyCustomer{},
 		&models.Broker{},
 		&models.Bank{},
@@ -39,7 +38,9 @@ func Migrate(db *gorm.DB) {
 	//	//&models.Customer{},
 	//	//&models.Sale{},
 	//	//&models.CompanyCustomer{},
-	//	&models.SalePaymentStatus{},
+	//	//&models.SalePaymentStatus{},
+	//	&models.Receipt{},
+	//	&models.ReceiptClear{},
 	//)
 
 	if err != nil {

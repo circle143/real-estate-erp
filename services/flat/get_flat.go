@@ -13,6 +13,21 @@ import (
 	"strings"
 )
 
+func getSalesPaidAmount(db *gorm.DB, saleIDs []uuid.UUID) (*[]models.SalePaid, error) {
+	var salePayments []models.SalePaid
+	err := db.Table("receipts AS r").
+		Select("r.sale_id, SUM(r.total_amount) AS total_paid_amount").
+		Joins("JOIN receipt_clears c ON c.receipt_id = r.id").
+		Where("r.sale_id IN ?", saleIDs).
+		Group("r.sale_id").
+		Scan(&salePayments).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &salePayments, nil
+}
+
 type hGetAllSocietyFlats struct{}
 
 func (h *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, filter string) (*custom.PaginatedData, error) {
@@ -60,21 +75,25 @@ func (h *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, f
 	}
 
 	// get sale amount
-	var salePayments []models.SalePaid
-	if len(saleIDs) > 0 {
-		err := db.Model(&models.SalePaymentStatus{}).
-			Select("sale_id, SUM(amount) AS total_paid_amount").
-			Where("sale_id IN ?", saleIDs).
-			Group("sale_id").
-			Scan(&salePayments).Error
-		if err != nil {
-			return nil, err
-		}
+	//var salePayments []models.SalePaid
+	//if len(saleIDs) > 0 {
+	//	err := db.Model(&models.SalePaymentStatus{}).
+	//		Select("sale_id, SUM(amount) AS total_paid_amount").
+	//		Where("sale_id IN ?", saleIDs).
+	//		Group("sale_id").
+	//		Scan(&salePayments).Error
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	salePayments, err := getSalesPaidAmount(db, saleIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	// map sale id -> paid amount
 	totalsMap := make(map[uuid.UUID]decimal.Decimal)
-	for _, sp := range salePayments {
+	for _, sp := range *salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
 
@@ -157,21 +176,25 @@ func (h *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, cu
 	}
 
 	// get sale amount
-	var salePayments []models.SalePaid
-	if len(saleIDs) > 0 {
-		err := db.Model(&models.SalePaymentStatus{}).
-			Select("sale_id, SUM(amount) AS total_paid_amount").
-			Where("sale_id IN ?", saleIDs).
-			Group("sale_id").
-			Scan(&salePayments).Error
-		if err != nil {
-			return nil, err
-		}
+	//var salePayments []models.SalePaid
+	//if len(saleIDs) > 0 {
+	//	err := db.Model(&models.SalePaymentStatus{}).
+	//		Select("sale_id, SUM(amount) AS total_paid_amount").
+	//		Where("sale_id IN ?", saleIDs).
+	//		Group("sale_id").
+	//		Scan(&salePayments).Error
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	salePayments, err := getSalesPaidAmount(db, saleIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	// map sale id -> paid amount
 	totalsMap := make(map[uuid.UUID]decimal.Decimal)
-	for _, sp := range salePayments {
+	for _, sp := range *salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
 
@@ -246,21 +269,25 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	}
 
 	// get sale amount
-	var salePayments []models.SalePaid
-	if len(saleIDs) > 0 {
-		err := db.Model(&models.SalePaymentStatus{}).
-			Select("sale_id, SUM(amount) AS total_paid_amount").
-			Where("sale_id IN ?", saleIDs).
-			Group("sale_id").
-			Scan(&salePayments).Error
-		if err != nil {
-			return nil, err
-		}
+	//var salePayments []models.SalePaid
+	//if len(saleIDs) > 0 {
+	//	err := db.Model(&models.SalePaymentStatus{}).
+	//		Select("sale_id, SUM(amount) AS total_paid_amount").
+	//		Where("sale_id IN ?", saleIDs).
+	//		Group("sale_id").
+	//		Scan(&salePayments).Error
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
+	salePayments, err := getSalesPaidAmount(db, saleIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	// map sale id -> paid amount
 	totalsMap := make(map[uuid.UUID]decimal.Decimal)
-	for _, sp := range salePayments {
+	for _, sp := range *salePayments {
 		totalsMap[sp.SaleId] = sp.TotalPaidAmount
 	}
 

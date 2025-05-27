@@ -7,9 +7,9 @@ import (
 )
 
 type PaymentReport struct {
-	Total   float64 `json:"total"`
-	Paid    float64 `json:"paid"`
-	Pending float64 `json:"pending"`
+	Total   decimal.Decimal `json:"total"`
+	Paid    decimal.Decimal `json:"paid"`
+	Pending decimal.Decimal `json:"pending"`
 }
 
 type TowerPaymentStatus struct {
@@ -20,11 +20,11 @@ type TowerPaymentStatus struct {
 	CreatedAt   time.Time    `gorm:"autoCreateTime" json:"createdAt"`
 }
 
-type SalePaymentStatus struct {
-	PaymentId   uuid.UUID       `gorm:"primaryKey" json:"paymentId"`
-	SaleId      uuid.UUID       `gorm:"primaryKey" json:"saleId"`
-	PaymentPlan *PaymentPlan    `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
-	Sale        *Sale           `gorm:"foreignKey:SaleId;not null" json:"sale,omitempty"`
-	Amount      decimal.Decimal `gorm:"not null;type:numeric" json:"amount"`
-	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"createdAt"`
-}
+//type SalePaymentStatus struct {
+//	PaymentId   uuid.UUID       `gorm:"primaryKey" json:"paymentId"`
+//	SaleId      uuid.UUID       `gorm:"primaryKey" json:"saleId"`
+//	PaymentPlan *PaymentPlan    `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
+//	Sale        *Sale           `gorm:"foreignKey:SaleId;not null" json:"sale,omitempty"`
+//	Amount      decimal.Decimal `gorm:"not null;type:numeric" json:"amount"`
+//	CreatedAt   time.Time       `gorm:"autoCreateTime" json:"createdAt"`
+//}

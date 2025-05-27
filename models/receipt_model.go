@@ -16,16 +16,17 @@ type AmountWithGSTInclusive struct {
 type Receipt struct {
 	Id                uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	SaleId            uuid.UUID          `gorm:"not null" json:"saleId"`
-	Sale              *Sale              `gorm:"foreignKey:SaleId" json:"sale,omitempty"`
-	TotalAmount       decimal.Decimal    `gorm:"not null" json:"totalAmount"`
+	Sale              *Sale              `gorm:"foreignKey:SaleId;constraint:OnDelete:CASCADE" json:"sale,omitempty"`
+	TotalAmount       decimal.Decimal    `gorm:"not null;type:numeric" json:"totalAmount"`
 	Mode              custom.ReceiptMode `gorm:"not null" json:"mode"`
 	DateIssued        custom.DateOnly    `gorm:"not null" json:"dateIssued"`
 	BankName          string             `json:"bankName"`
 	TransactionNumber string             `json:"transactionNumber"`
-	Amount            decimal.Decimal    `gorm:"not null" json:"amount"`
-	CGST              decimal.Decimal    `gorm:"not null" json:"cgst"`
-	SGST              decimal.Decimal    `gorm:"not null" json:"sgst"`
-	Cleared           *ReceiptClear      `gorm:"foreignKey:ReceiptId" json:"cleared,omitempty"`
+	Failed            bool               `gorm:"not null;default:false" json:"failed"`
+	Amount            decimal.Decimal    `gorm:"not null;type:numeric" json:"amount"`
+	CGST              decimal.Decimal    `gorm:"not null;type:numeric" json:"cgst"`
+	SGST              decimal.Decimal    `gorm:"not null;type:numeric" json:"sgst"`
+	Cleared           *ReceiptClear      `gorm:"foreignKey:ReceiptId;constraint:OnDelete:CASCADE" json:"cleared,omitempty"`
 	CreatedAt         time.Time          `gorm:"autoCreateTime" json:"createdAt"`
 }
 

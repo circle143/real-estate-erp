@@ -14,6 +14,10 @@ import (
 	"net/http"
 )
 
+func decimalPtr(d decimal.Decimal) *decimal.Decimal {
+	return &d
+}
+
 type hGetSalePaymentBreakDown struct{}
 
 func (h *hGetSalePaymentBreakDown) validate(db *gorm.DB, orgId, society, saleId string) error {
@@ -69,48 +73,42 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	}
 
 	paymentPlans = append(directPlans, paymentPlans...)
-	var statuses []models.SalePaymentStatus
-	err = db.
-		Where("sale_id = ?", saleId).
-		Find(&statuses).Error
+
+	// total amount paid
+	var totalPaid decimal.Decimal
+	err = db.Table("receipts AS r").
+		Select("COALESCE(SUM(r.total_amount), 0)").
+		Joins("JOIN receipt_clears c ON c.receipt_id = r.id").
+		Where("r.sale_id = ?", saleId).
+		Group("r.sale_id").
+		Scan(&totalPaid).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a lookup map for PaymentId → Amount
-	paidAmountMap := make(map[uuid.UUID]decimal.Decimal, len(statuses))
-	for _, s := range statuses {
-		paidAmountMap[s.PaymentId] = s.Amount
-	}
-
-	// Set Paid = true and add amount
-	for i, p := range paymentPlans {
-		value := false
-		var amount decimal.Decimal
-		if amt, ok := paidAmountMap[p.Id]; ok {
-			value = true
-			amount = amt
-		} else {
-			percent := decimal.NewFromInt(int64(p.Amount)) // Convert int to decimal
-			amount = sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
-		}
-		paymentPlans[i].Paid = &value
-		paymentPlans[i].AmountPaid = &amount
-	}
-
-	// payment
-	var totalPaid = decimal.Zero
+	totalPaidCpy := totalPaid
+	// total amount according to active payment plans
 	var total = decimal.Zero
+	for i, plan := range paymentPlans {
+		percent := decimal.NewFromInt(int64(plan.Amount)) // Convert int to decimal
+		amount := sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
 
-	for _, plan := range paymentPlans {
-		if plan.AmountPaid == nil {
-			continue // skip nil amount to avoid panic
-		}
+		paymentPlans[i].TotalAmount = &amount
+		total = total.Add(amount)
 
-		total = total.Add(*plan.AmountPaid)
-
-		if plan.Paid != nil && *plan.Paid {
-			totalPaid = totalPaid.Add(*plan.AmountPaid)
+		// Distribute totalPaidCpy
+		if totalPaidCpy.GreaterThanOrEqual(amount) {
+			paymentPlans[i].AmountPaid = &amount
+			paymentPlans[i].Remaining = decimalPtr(decimal.Zero)
+			totalPaidCpy = totalPaidCpy.Sub(amount)
+		} else if totalPaidCpy.GreaterThan(decimal.Zero) {
+			paymentPlans[i].AmountPaid = &totalPaidCpy
+			remaining := amount.Sub(totalPaidCpy)
+			paymentPlans[i].Remaining = decimalPtr(remaining)
+			totalPaidCpy = decimal.Zero
+		} else {
+			paymentPlans[i].AmountPaid = decimalPtr(decimal.Zero)
+			paymentPlans[i].Remaining = decimalPtr(amount)
 		}
 	}
 
@@ -144,7 +142,7 @@ func (s *saleService) getSalePaymentBreakDown(w http.ResponseWriter, r *http.Req
 type hGetSocietySalesReport struct{}
 
 func (h *hGetSocietySalesReport) execute(db *gorm.DB, orgId, society string) (*models.PaymentReport, error) {
-	var total float64
+	var total decimal.Decimal
 	err := db.Model(&models.Sale{}).
 		Where("org_id = ? AND society_id = ?", orgId, society).
 		Select("COALESCE(SUM(total_price), 0)"). // Use COALESCE to avoid null
@@ -154,12 +152,13 @@ func (h *hGetSocietySalesReport) execute(db *gorm.DB, orgId, society string) (*m
 		return nil, err
 	}
 
-	var paid float64
+	var paid decimal.Decimal
 	err = db.
-		Joins("JOIN sales ON sales.id = sale_payment_statuses.sale_id").
-		Model(&models.SalePaymentStatus{}).
-		Where("sales.society_id = ? AND sales.org_id = ?", society, orgId).
-		Select("COALESCE(SUM(sale_payment_statuses.amount), 0)").
+		Table("receipts AS r").
+		Select("COALESCE(SUM(r.total_amount), 0) AS total_paid_amount").
+		Joins("JOIN receipt_clears c ON c.receipt_id = r.id").
+		Joins("JOIN sales s ON s.id = r.sale_id").
+		Where("s.society_id = ? AND s.org_id = ?", society, orgId).
 		Scan(&paid).Error
 	if err != nil {
 		return nil, err
@@ -168,7 +167,7 @@ func (h *hGetSocietySalesReport) execute(db *gorm.DB, orgId, society string) (*m
 	return &models.PaymentReport{
 		Total:   total,
 		Paid:    paid,
-		Pending: total - paid,
+		Pending: total.Sub(paid),
 	}, nil
 }
 
@@ -358,7 +357,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 				totalAmount := flat.SaleDetail.TotalPrice
 				paymentPlanAmount := totalAmount.Mul(percent).Div(decimal.NewFromInt(100))
 				paymentBreakdownItem := models.TowerReportPaymentBreakdownItem{
-					//Flat:   flat,
+					//Flat: flat,
 					FlatId: flat.Id,
 					Amount: paymentPlanAmount,
 				}
