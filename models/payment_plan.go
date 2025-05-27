@@ -20,7 +20,7 @@ type PaymentPlan struct {
 	Active         *bool                       `gorm:"-" json:"active,omitempty"`
 	TotalAmount    *decimal.Decimal            `gorm:"-" json:"totalAmount,omitempty"`
 	AmountPaid     *decimal.Decimal            `gorm:"-" json:"amountPaid,omitempty"`
-	Remaining      *decimal.Decimal            `gorm:"-" json:"paid,omitempty"` // used by flat payment breakdown
+	Remaining      *decimal.Decimal            `gorm:"-" json:"remaining,omitempty"` // used by flat payment breakdown
 	Due            *time.Time                  `gorm:"-" json:"due,omitempty"`
 	CreatedAt      time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt      time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
