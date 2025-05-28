@@ -6,9 +6,11 @@ import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type hGetAllSocietyBrokers struct{}
@@ -46,6 +48,86 @@ func (s *brokerService) getAllSocietyBrokers(w http.ResponseWriter, r *http.Requ
 	var response custom.JSONResponse
 	response.Error = false
 	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}
+
+// start time should be greater than end time
+// filtering is based on the past
+type hGetBrokerReport struct {
+	RecordsFrom time.Time
+	RecordsTill time.Time
+}
+
+func (h *hGetBrokerReport) validate(db *gorm.DB, orgId, society, brokerId string) error {
+	// handle req body times
+	//if h.RecordsFrom.IsZero() {
+	//	h.RecordsFrom = time.Now()
+	//}
+	//
+	//if h.RecordsTill.IsZero() {
+	//	h.RecordsTill = time.Date()
+	//}
+
+	brokerSocietyInfo := CreateBrokerSocietyInfoService(db, uuid.MustParse(brokerId))
+	return common.IsSameSociety(brokerSocietyInfo, orgId, society)
+}
+
+func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string) (*models.Broker, error) {
+	err := h.validate(db, orgId, society, brokerId)
+	if err != nil {
+		return nil, err
+	}
+
+	brokerModel := models.Broker{
+		Id: uuid.MustParse(brokerId),
+	}
+	err = db.Preload("Sales", func(db *gorm.DB) *gorm.DB {
+		if h.RecordsTill.IsZero() && h.RecordsFrom.IsZero() {
+			return db.Order("created_at DESC")
+		}
+
+		if h.RecordsTill.IsZero() {
+			return db.
+				Where("created_at <= ?", h.RecordsFrom).
+				Order("created_at DESC")
+		}
+
+		if h.RecordsFrom.IsZero() {
+			return db.
+				Where("created_at >= ?", h.RecordsTill).
+				Order("created_at DESC")
+		}
+
+		return db.
+			Where("created_at <= ? AND created_at >= ?", h.RecordsFrom, h.RecordsTill).
+			Order("created_at DESC")
+	}).Preload("Sales.Flat").
+		Preload("Sales.Customers").
+		Preload("Sales.CompanyCustomer").
+		First(&brokerModel).Error
+	return &brokerModel, err
+}
+
+func (s *brokerService) getBrokerReport(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	brokerId := chi.URLParam(r, "brokerId")
+
+	reqBody := payload.ValidateAndDecodeRequest[hGetBrokerReport](w, r)
+	if reqBody == nil {
+		return
+	}
+
+	report, err := reqBody.execute(s.db, orgId, societyRera, brokerId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = report
 
 	payload.EncodeJSON(w, http.StatusOK, response)
 }

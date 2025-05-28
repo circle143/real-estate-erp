@@ -395,6 +395,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 	}, nil
 }
 
+// todo fix this
 func (s *saleService) getTowerSalesReport(w http.ResponseWriter, r *http.Request) {
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")

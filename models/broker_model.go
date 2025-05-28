@@ -15,6 +15,7 @@ type Broker struct {
 	PanNumber    string    `gorm:"not null;uniqueIndex:idx_society_pan" json:"panNumber"`
 	CreatedAt    time.Time `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updatedAt"`
+	Sales        []Sale    `gorm:"foreignKey:BrokerId" json:"sales,omitempty"`
 }
 
 func (u Broker) GetCreatedAt() time.Time {

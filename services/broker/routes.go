@@ -25,6 +25,7 @@ func (s *brokerService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Get("/", s.getAllSocietyBrokers)
+		router.Post("/{brokerId}/report", s.getBrokerReport)
 	})
 
 	return mux
