@@ -73,6 +73,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	}
 
 	paymentPlans = append(directPlans, paymentPlans...)
+	paymentPlans = common.SortDbModels(paymentPlans)
 
 	// total amount paid
 	var totalPaid decimal.Decimal
@@ -102,7 +103,8 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 			paymentPlans[i].Remaining = decimalPtr(decimal.Zero)
 			totalPaidCpy = totalPaidCpy.Sub(amount)
 		} else if totalPaidCpy.GreaterThan(decimal.Zero) {
-			paymentPlans[i].AmountPaid = &totalPaidCpy
+			amountPaid := totalPaidCpy
+			paymentPlans[i].AmountPaid = &amountPaid
 			remaining := amount.Sub(totalPaidCpy)
 			paymentPlans[i].Remaining = decimalPtr(remaining)
 			totalPaidCpy = decimal.Zero
@@ -259,6 +261,9 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 
 	// all payment plans combined
 	paymentPlans = append(directPlans, paymentPlans...)
+	// sort them
+	paymentPlans = common.SortDbModels(paymentPlans)
+
 	var paymentPlansIds []uuid.UUID
 
 	var towerReportPaymentBreakdown []models.TowerReportPaymentBreakdown
