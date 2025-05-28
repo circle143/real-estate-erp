@@ -36,12 +36,8 @@ func (s *receiptService) markReceiptAsFailed(w http.ResponseWriter, r *http.Requ
 	societyRera := chi.URLParam(r, "society")
 	receiptId := chi.URLParam(r, "receiptId")
 
-	reqBody := payload.ValidateAndDecodeRequest[hMarkReceiptAsFailed](w, r)
-	if reqBody == nil {
-		return
-	}
-
-	err := reqBody.execute(s.db, orgId, societyRera, receiptId)
+	receipt := hMarkReceiptAsFailed{}
+	err := receipt.execute(s.db, orgId, societyRera, receiptId)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
