@@ -8,7 +8,6 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
@@ -220,22 +219,36 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 		return nil, err
 	}
 
-	// 2 -> create map saleId -> models.Flat for easy lookup and creating final response
-	flatsMap := make(map[uuid.UUID]models.Flat)
-	for _, flat := range soldFlats {
-		saleId := flat.SaleDetail.Id
-		flatsMap[saleId] = flat
-	}
+	// 2 -> get total sale amount
+	totalAmountTower := decimal.Zero
+	totalAmountTowerPaymentPlan := decimal.Zero
+	totalTowerPaid := decimal.Zero
 
-	// 3 -> get total sale amount
-	var totalAmountTower decimal.Decimal
-	err = db.
-		Table("towers t").
-		Select("COALESCE(SUM(s.total_price), 0)").
-		Joins("JOIN flats f ON f.tower_id = t.id").
-		Joins("JOIN sales s ON s.flat_id = f.id").
-		Where("t.id = ?", towerId).
-		Scan(&totalAmountTower).Error
+	// 3 -> create map flatId -> flatStatsInfo
+	type flatStatInfo struct {
+		total decimal.Decimal
+		paid  decimal.Decimal
+	}
+	flatsMap := make(map[uuid.UUID]flatStatInfo)
+
+	// populate map and tower amount
+	for _, flat := range soldFlats {
+		flatId := flat.Id
+		total := flat.SaleDetail.TotalPrice
+
+		paid := decimal.Zero
+		for _, receipt := range flat.SaleDetail.Receipts {
+			if receipt.Cleared != nil {
+				paid = paid.Add(receipt.TotalAmount)
+			}
+		}
+
+		flatsMap[flatId] = flatStatInfo{
+			total: total,
+			paid:  paid,
+		}
+		totalAmountTower = totalAmountTower.Add(total)
+	}
 
 	// 4 -> get all direct plans
 	var directPlans []models.PaymentPlan
@@ -259,131 +272,81 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 		return nil, err
 	}
 
-	// all payment plans combined
+	// all payment plans combined and // sort them
 	paymentPlans = append(directPlans, paymentPlans...)
-	// sort them
 	paymentPlans = common.SortDbModels(paymentPlans)
 
-	var paymentPlansIds []uuid.UUID
-
+	// create tower payment breakdown
 	var towerReportPaymentBreakdown []models.TowerReportPaymentBreakdown
-	towerReportPaymentBreakdownMap := make(map[uuid.UUID]models.TowerReportPaymentBreakdown)
-
-	// 6 -> update each plan amount paid
 	for _, plan := range paymentPlans {
-		percent := decimal.NewFromInt(int64(plan.Amount))
-		paymentReport := models.TowerReportPaymentBreakdown{
+		totalPlanAmount := decimal.Zero
+		totalPlanPaid := decimal.Zero
+
+		percent := decimal.NewFromInt(int64(plan.Amount)).Div(decimal.NewFromInt(100))
+
+		var paidItems []models.TowerReportPaymentBreakdownItem
+		var unpaidItems []models.TowerReportPaymentBreakdownItem
+
+		for _, flat := range soldFlats {
+			flatId := flat.Id
+			flatPaidRem := flatsMap[flatId].paid
+			isPaid := false
+
+			flatTotalPaymentPlan := flatsMap[flatId].total.Mul(percent)
+			flatPaid := decimal.Zero
+			flatRemaining := decimal.Zero
+
+			if flatPaidRem.GreaterThanOrEqual(flatTotalPaymentPlan) {
+				isPaid = true
+
+				flatPaid = flatTotalPaymentPlan
+				flatPaidRem = flatPaidRem.Sub(flatTotalPaymentPlan)
+			} else if flatPaidRem.GreaterThan(decimal.Zero) {
+				flatPaid = flatPaidRem
+				flatPaidRem = decimal.Zero
+				flatRemaining = flatTotalPaymentPlan.Sub(flatPaid)
+			} else {
+				flatRemaining = flatTotalPaymentPlan
+			}
+
+			totalPlanAmount = totalPlanAmount.Add(flatTotalPaymentPlan)
+			totalPlanPaid = totalPlanPaid.Add(flatPaid)
+
+			// update flat
+			flat := flatsMap[flatId]
+			flat.paid = flatPaidRem
+			flatsMap[flatId] = flat
+
+			// create payment plan item
+			paymentPlanItem := models.TowerReportPaymentBreakdownItem{
+				FlatId:    flatId,
+				Total:     flatTotalPaymentPlan,
+				Paid:      flatPaid,
+				Remaining: flatRemaining,
+			}
+
+			// add to correct slice
+			if isPaid {
+				paidItems = append(paidItems, paymentPlanItem)
+			} else {
+				unpaidItems = append(unpaidItems, paymentPlanItem)
+			}
+		}
+
+		totalAmountTowerPaymentPlan = totalAmountTowerPaymentPlan.Add(totalPlanAmount)
+		totalTowerPaid = totalTowerPaid.Add(totalPlanPaid)
+
+		towerPaymentPlanItem := models.TowerReportPaymentBreakdown{
 			PaymentPlan: plan,
-			Total:       totalAmountTower.Mul(percent).Div(decimal.NewFromInt(100)),
+			Total:       totalPlanAmount,
+			Paid:        totalPlanPaid,
+			Remaining:   totalPlanAmount.Sub(totalPlanPaid),
+			PaidItems:   paidItems,
+			UnpaidItems: unpaidItems,
 		}
-		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, paymentReport)
-		towerReportPaymentBreakdownMap[plan.Id] = paymentReport
-		paymentPlansIds = append(paymentPlansIds, plan.Id)
+		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, towerPaymentPlanItem)
 	}
 
-	// 7 -> get paid amount for each plan and paid sale items
-	type PaymentSummary struct {
-		PaymentID uuid.UUID
-		TotalPaid decimal.Decimal
-		SaleIDs   pq.StringArray `gorm:"type:[]text"`
-	}
-	var paymentSummaries []PaymentSummary
-
-	err = db.Raw(
-		`
-		SELECT
-			ps.payment_id,
-			COALESCE(SUM(ps.amount), 0) AS total_paid,
-			ARRAY_AGG(DISTINCT ps.sale_id) AS sale_ids
-		FROM sales s
-		JOIN flats f ON s.flat_id = f.id
-		JOIN towers t ON t.id = f.tower_id
-		JOIN sale_payment_statuses ps ON s.id = ps.sale_id
-		WHERE
-		t.id = ?
-		AND ps.payment_id IN ?
-		GROUP BY ps.payment_id
-	`,
-		towerId,
-		paymentPlansIds,
-	).Scan(&paymentSummaries).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert existing summaries to a map for quick lookup
-	summaryMap := make(map[uuid.UUID]PaymentSummary)
-	for _, summary := range paymentSummaries {
-		summaryMap[summary.PaymentID] = summary
-	}
-
-	// Add missing payment plans with default values
-	for _, paymentId := range paymentPlansIds {
-		if _, found := summaryMap[paymentId]; !found {
-			summaryMap[paymentId] = PaymentSummary{
-				PaymentID: paymentId,
-				TotalPaid: decimal.Zero,
-				SaleIDs:   pq.StringArray{},
-			}
-		}
-	}
-
-	// Convert the map back to a slice
-	paymentSummaries = make([]PaymentSummary, 0, len(summaryMap))
-	for _, summary := range summaryMap {
-		paymentSummaries = append(paymentSummaries, summary)
-	}
-
-	totalTowerPaid := decimal.Zero
-	totalAmountTowerPaymentPlan := decimal.Zero
-	// 8 -> populate payment breakdown
-	for _, summary := range paymentSummaries {
-		paymentId := summary.PaymentID
-		saleIds := summary.SaleIDs
-
-		saleIdMap := make(map[string]struct{}, len(saleIds))
-		for _, sid := range saleIds {
-			saleIdMap[sid] = struct{}{}
-		}
-
-		if paymentBreakdown, ok := towerReportPaymentBreakdownMap[paymentId]; ok {
-			percent := decimal.NewFromInt(int64(paymentBreakdown.Amount))
-			paymentBreakdown.Paid = summary.TotalPaid
-			paymentBreakdown.Remaining = paymentBreakdown.Total.Sub(summary.TotalPaid)
-
-			totalTowerPaid = totalTowerPaid.Add(summary.TotalPaid)
-			totalAmountTowerPaymentPlan = totalAmountTowerPaymentPlan.Add(paymentBreakdown.Total)
-
-			var paidItems []models.TowerReportPaymentBreakdownItem
-			var unpaidItems []models.TowerReportPaymentBreakdownItem
-
-			for _, flat := range soldFlats {
-				id := flat.SaleDetail.Id.String()
-				totalAmount := flat.SaleDetail.TotalPrice
-				paymentPlanAmount := totalAmount.Mul(percent).Div(decimal.NewFromInt(100))
-				paymentBreakdownItem := models.TowerReportPaymentBreakdownItem{
-					//Flat: flat,
-					FlatId: flat.Id,
-					Amount: paymentPlanAmount,
-				}
-
-				if _, found := saleIdMap[id]; found {
-					paidItems = append(paidItems, paymentBreakdownItem)
-				} else {
-					unpaidItems = append(unpaidItems, paymentBreakdownItem)
-				}
-			}
-
-			paymentBreakdown.PaidItems = paidItems
-			paymentBreakdown.UnpaidItems = unpaidItems
-			towerReportPaymentBreakdownMap[paymentId] = paymentBreakdown
-		}
-	}
-
-	towerReportPaymentBreakdown = make([]models.TowerReportPaymentBreakdown, 0, len(towerReportPaymentBreakdownMap))
-	for _, breakdown := range towerReportPaymentBreakdownMap {
-		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, breakdown)
-	}
 	return &models.TowerReport{
 		Flats: soldFlats,
 		Overall: models.TowerFinance{

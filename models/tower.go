@@ -36,9 +36,10 @@ type TowerFinance struct {
 }
 
 type TowerReportPaymentBreakdownItem struct {
-	//Flat
-	FlatId uuid.UUID       `json:"flat_id"`
-	Amount decimal.Decimal `json:"amount"`
+	FlatId    uuid.UUID       `json:"flatId"`
+	Total     decimal.Decimal `json:"total"`
+	Paid      decimal.Decimal `json:"paid"`
+	Remaining decimal.Decimal `json:"remaining"`
 }
 
 type TowerReportPaymentBreakdown struct {
