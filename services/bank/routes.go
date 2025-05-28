@@ -25,6 +25,7 @@ func (s *bankService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Get("/", s.getAllSocietyBankAccounts)
+		router.Post("/{bankId}/report", s.getBankReport)
 	})
 
 	return mux

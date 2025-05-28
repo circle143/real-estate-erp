@@ -50,4 +50,6 @@ type ReceiptClear struct {
 	ReceiptId uuid.UUID `gorm:"not null;uniqueIndex" json:"receiptId"`
 	BankId    uuid.UUID `gorm:"not null" json:"bankId"`
 	Bank      *Bank     `gorm:"foreignKey:BankId" json:"bank,omitempty"`
+	Receipt   *Receipt  `gorm:"foreignKey:ReceiptId" json:"receipt,omitempty"`
+	CreatedAt time.Time `gorm:"autoCreateTime" json:"createdAt"`
 }

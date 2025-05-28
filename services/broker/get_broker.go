@@ -60,15 +60,6 @@ type hGetBrokerReport struct {
 }
 
 func (h *hGetBrokerReport) validate(db *gorm.DB, orgId, society, brokerId string) error {
-	// handle req body times
-	//if h.RecordsFrom.IsZero() {
-	//	h.RecordsFrom = time.Now()
-	//}
-	//
-	//if h.RecordsTill.IsZero() {
-	//	h.RecordsTill = time.Date()
-	//}
-
 	brokerSocietyInfo := CreateBrokerSocietyInfoService(db, uuid.MustParse(brokerId))
 	return common.IsSameSociety(brokerSocietyInfo, orgId, society)
 }
