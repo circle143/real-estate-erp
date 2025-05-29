@@ -2,6 +2,7 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
@@ -23,6 +24,6 @@ func (u Broker) GetCreatedAt() time.Time {
 }
 
 type BrokerReport struct {
-	Finance Finance
-	Details Broker
+	TotalAmount decimal.Decimal `json:"totalAmount"`
+	Details     Broker          `json:"details"`
 }

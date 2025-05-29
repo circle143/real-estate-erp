@@ -63,7 +63,7 @@ func (h *hGetBankReport) validate(db *gorm.DB, orgId, society, bankId string) er
 	return common.IsSameSociety(bankSocietyInfo, orgId, society)
 }
 
-func (h *hGetBankReport) execute(db *gorm.DB, orgId, society, bankId string) (*models.Bank, error) {
+func (h *hGetBankReport) execute(db *gorm.DB, orgId, society, bankId string) (*models.BankReport, error) {
 	err := h.validate(db, orgId, society, bankId)
 	if err != nil {
 		return nil, err
@@ -104,8 +104,10 @@ func (h *hGetBankReport) execute(db *gorm.DB, orgId, society, bankId string) (*m
 		totalCleared = totalCleared.Add(clearReceipt.Receipt.TotalAmount)
 	}
 
-	bankModel.TotalAmount = &totalCleared
-	return &bankModel, err
+	return &models.BankReport{
+		TotalAmount: totalCleared,
+		Details:     bankModel,
+	}, err
 }
 
 func (s *bankService) getBankReport(w http.ResponseWriter, r *http.Request) {

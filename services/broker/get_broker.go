@@ -103,25 +103,13 @@ func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string)
 		First(&brokerModel).Error
 
 	totalAmount := decimal.Zero
-	totalPaid := decimal.Zero
-
 	for _, sale := range brokerModel.Sales {
 		totalAmount = totalAmount.Add(sale.TotalPrice)
-
-		for _, receipt := range sale.Receipts {
-			if receipt.Cleared != nil {
-				totalPaid = totalPaid.Add(receipt.TotalAmount)
-			}
-		}
 	}
 
 	return &models.BrokerReport{
-		Finance: models.Finance{
-			Total:     totalAmount,
-			Paid:      totalPaid,
-			Remaining: totalAmount.Sub(totalPaid),
-		},
-		Details: brokerModel,
+		TotalAmount: totalAmount,
+		Details:     brokerModel,
 	}, err
 }
 
