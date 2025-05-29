@@ -21,3 +21,8 @@ type Broker struct {
 func (u Broker) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }
+
+type BrokerReport struct {
+	Finance Finance
+	Details Broker
+}

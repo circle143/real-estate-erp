@@ -349,12 +349,12 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 
 	return &models.TowerReport{
 		Flats: soldFlats,
-		Overall: models.TowerFinance{
+		Overall: models.Finance{
 			Total:     totalAmountTower,
 			Paid:      totalTowerPaid,
 			Remaining: totalAmountTower.Sub(totalTowerPaid),
 		},
-		PaymentPlan: models.TowerFinance{
+		PaymentPlan: models.Finance{
 			Total:     totalAmountTowerPaymentPlan,
 			Paid:      totalTowerPaid,
 			Remaining: totalAmountTowerPaymentPlan.Sub(totalTowerPaid),

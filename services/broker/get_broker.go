@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
@@ -64,7 +65,7 @@ func (h *hGetBrokerReport) validate(db *gorm.DB, orgId, society, brokerId string
 	return common.IsSameSociety(brokerSocietyInfo, orgId, society)
 }
 
-func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string) (*models.Broker, error) {
+func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string) (*models.BrokerReport, error) {
 	err := h.validate(db, orgId, society, brokerId)
 	if err != nil {
 		return nil, err
@@ -97,7 +98,28 @@ func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string)
 		Preload("Sales.Customers").
 		Preload("Sales.CompanyCustomer").
 		First(&brokerModel).Error
-	return &brokerModel, err
+
+	totalAmount := decimal.Zero
+	totalPaid := decimal.Zero
+
+	for _, sale := range brokerModel.Sales {
+		totalAmount = totalAmount.Add(sale.TotalPrice)
+
+		for _, receipt := range sale.Receipts {
+			if receipt.Cleared != nil {
+				totalPaid = totalPaid.Add(receipt.TotalAmount)
+			}
+		}
+	}
+
+	return &models.BrokerReport{
+		Finance: models.Finance{
+			Total:     totalAmount,
+			Paid:      totalPaid,
+			Remaining: totalAmount.Sub(totalPaid),
+		},
+		Details: brokerModel,
+	}, err
 }
 
 func (s *brokerService) getBrokerReport(w http.ResponseWriter, r *http.Request) {
