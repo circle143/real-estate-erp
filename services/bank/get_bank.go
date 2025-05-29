@@ -7,6 +7,7 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 	"strings"
@@ -97,6 +98,13 @@ func (h *hGetBankReport) execute(db *gorm.DB, orgId, society, bankId string) (*m
 		Preload("ClearedReceipts.Receipt.Sale.Customers").
 		Preload("ClearedReceipts.Receipt.Sale.CompanyCustomer").
 		First(&bankModel).Error
+
+	totalCleared := decimal.Zero
+	for _, clearReceipt := range bankModel.ClearedReceipts {
+		totalCleared = totalCleared.Add(clearReceipt.Receipt.TotalAmount)
+	}
+
+	bankModel.TotalAmount = &totalCleared
 	return &bankModel, err
 }
 
