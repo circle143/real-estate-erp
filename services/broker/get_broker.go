@@ -97,6 +97,9 @@ func (h *hGetBrokerReport) execute(db *gorm.DB, orgId, society, brokerId string)
 	}).Preload("Sales.Flat").
 		Preload("Sales.Customers").
 		Preload("Sales.CompanyCustomer").
+		Preload("Sales.Receipts").
+		Preload("Sales.Receipts.Cleared").
+		Preload("Sales.Receipts.Cleared.Bank").
 		First(&brokerModel).Error
 
 	totalAmount := decimal.Zero

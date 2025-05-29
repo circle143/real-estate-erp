@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-type SalePaid struct {
-	SaleId          uuid.UUID
-	TotalPaidAmount decimal.Decimal
-}
-
 type Sale struct {
 	Id              uuid.UUID             `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	FlatId          uuid.UUID             `gorm:"not null" json:"flatId"`
@@ -21,8 +16,8 @@ type Sale struct {
 	BrokerId        uuid.UUID             `gorm:"not null;index" json:"brokerId"`
 	Broker          *Broker               `gorm:"foreignKey:BrokerId;not null;constraint:OnUpdate:CASCADE" json:"broker,omitempty"`
 	TotalPrice      decimal.Decimal       `gorm:"not null;type:numeric" json:"totalPrice"`
-	Paid            decimal.Decimal       `gorm:"-" json:"paid"` // used to compute paid amount during req lifecycle
-	Remaining       decimal.Decimal       `gorm:"-" json:"remaining"`
+	Paid            *decimal.Decimal      `gorm:"-" json:"paid,omitempty"` // used to compute paid amount during req lifecycle
+	Remaining       *decimal.Decimal      `gorm:"-" json:"remaining,omitempty"`
 	PriceBreakdown  PriceBreakdownDetails `gorm:"not null;type:jsonb" json:"priceBreakdown"`
 	CreatedAt       time.Time             `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt       time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`
