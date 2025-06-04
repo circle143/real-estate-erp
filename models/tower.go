@@ -22,6 +22,7 @@ type Tower struct {
 	TotalFlats  int64           `gorm:"-" json:"totalFlats"`
 	SoldFlats   int64           `gorm:"-" json:"soldFlats"`
 	UnsoldFlats int64           `gorm:"-" json:"unsoldFlats"`
+	Flats       []Flat          `gorm:"foreignKey:TowerId" json:"flats,omitempty"`
 	//DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
 
