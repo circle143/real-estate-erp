@@ -19,6 +19,7 @@ func (s *towerService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/", s.createTower)
+		router.Post("/bulk", s.bulkCreateTower)
 		router.Patch("/{tower}", s.updateTower)
 		router.Delete("/{tower}", s.deleteTower)
 	})
@@ -29,6 +30,7 @@ func (s *towerService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Get("/", s.getAllTowers)
+		router.Get("/{towerId}", s.getTowerById)
 	})
 
 	return mux

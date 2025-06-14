@@ -93,3 +93,64 @@ func (s *towerService) getAllTowers(w http.ResponseWriter, r *http.Request) {
 
 	payload.EncodeJSON(w, http.StatusOK, response)
 }
+
+type hGetTowerById struct{}
+
+func (h *hGetTowerById) execute(db *gorm.DB, orgId, society, towerId string) (*models.Tower, error) {
+	towerData := models.Tower{}
+
+	tx := db.Model(models.Tower{}).Where("id = ? and society_id = ? and org_id = ?", towerId, society, orgId).Find(&towerData)
+	err := tx.Error
+	if err != nil {
+		return nil, err
+	}
+
+	if tx.RowsAffected == 0 {
+		return nil, &custom.RequestError{
+			Status:  http.StatusNotFound,
+			Message: "Tower not found",
+		}
+	}
+
+	totalFlats := int64(0)
+	soldFlats := int64(0)
+
+	// get total flats
+	err = db.Model(&models.Flat{}).Where("tower_id = ?", towerId).Count(&totalFlats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Model(&models.Sale{}).
+		Joins("join flats on flats.id = sales.flat_id").
+		Where("flats.tower_id = ?", towerId).
+		Count(&soldFlats).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	towerData.TotalFlats = totalFlats
+	towerData.SoldFlats = soldFlats
+	towerData.UnsoldFlats = totalFlats - soldFlats
+	return &towerData, nil
+}
+
+func (s *towerService) getTowerById(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	towerId := chi.URLParam(r, "towerId")
+
+	society := hGetTowerById{}
+	res, err := society.execute(s.db, orgId, societyRera, towerId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Data = res
+
+	payload.EncodeJSON(w, http.StatusOK, response)
+}

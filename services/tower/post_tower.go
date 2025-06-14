@@ -53,3 +53,5 @@ func (s *towerService) createTower(w http.ResponseWriter, r *http.Request) {
 
 	payload.EncodeJSON(w, http.StatusCreated, response)
 }
+
+func (s *towerService) bulkCreateTower(w http.ResponseWriter, r *http.Request) {}
