@@ -9,7 +9,6 @@ import (
 	"github.com/thedatashed/xlsxreader"
 	"gorm.io/gorm"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -79,7 +78,7 @@ func (h *hBulkCreateTower) validate(r *http.Request) (multipart.File, error) {
 		}
 	}
 
-	// Optional: Check magic number (first few bytes of file)
+	// Optional: Check magic number (first few bytes of a file)
 	buffer := make([]byte, 4)
 	if _, err := file.Read(buffer); err != nil {
 		return nil, &custom.RequestError{
@@ -108,16 +107,22 @@ func (h *hBulkCreateTower) createTowersFromFile(file multipart.File, orgId, soci
 	}
 	rows := xl.ReadRows(xl.Sheets[0])
 	headerRow := <-rows
-	columnMap := h.getColumnMap(&headerRow)
+	columnMap, err := h.getColumnMap(&headerRow)
+	if err != nil {
+		return nil, err
+	}
 
-	towers := h.parseTowerRows(rows, columnMap, orgId, society)
+	towers, err := h.parseTowerRows(rows, columnMap, orgId, society)
+	if err != nil {
+		return nil, err
+	}
+
 	err = db.Create(towers).Error
-
 	return towers, err
 }
 
 // getColumnMap maps required headers to their corresponding Excel column letters
-func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) map[string]string {
+func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) (map[string]string, error) {
 	const (
 		towerNameHeader       = "Towers"
 		towerFloorCountHeader = "No. Of Floors In Towers"
@@ -136,14 +141,17 @@ func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) map[string]st
 	}
 
 	if columnMap["name"] == "" || columnMap["floorCount"] == "" {
-		log.Fatalf("Required columns not found in header row")
+		return nil, &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Required columns not found in header row",
+		}
 	}
 
-	return columnMap
+	return columnMap, nil
 }
 
 // parseTowerRows extracts tower data from Excel rows
-func (h *hBulkCreateTower) parseTowerRows(rows chan xlsxreader.Row, columnMap map[string]string, orgId, society string) []*models.Tower {
+func (h *hBulkCreateTower) parseTowerRows(rows chan xlsxreader.Row, columnMap map[string]string, orgId, society string) ([]*models.Tower, error) {
 	orgUUID := uuid.MustParse(orgId)
 	var towers []*models.Tower
 
@@ -161,7 +169,10 @@ func (h *hBulkCreateTower) parseTowerRows(rows chan xlsxreader.Row, columnMap ma
 				if cell.Type == xlsxreader.TypeNumerical {
 					floorCount, err := strconv.Atoi(cell.Value)
 					if err != nil {
-						log.Fatalf("Error parsing floor count: %v", err)
+						return nil, &custom.RequestError{
+							Status:  http.StatusBadRequest,
+							Message: "Invalid floor value provided.",
+						}
 					}
 					tower.FloorCount = floorCount
 				}
@@ -174,7 +185,7 @@ func (h *hBulkCreateTower) parseTowerRows(rows chan xlsxreader.Row, columnMap ma
 		}
 	}
 
-	return towers
+	return towers, nil
 }
 
 func (h *hBulkCreateTower) execute(db *gorm.DB, r *http.Request, orgId, society string) ([]*models.Tower, error) {
