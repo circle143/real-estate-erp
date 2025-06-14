@@ -4,6 +4,7 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/thedatashed/xlsxreader"
@@ -143,8 +144,7 @@ func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) (map[string]s
 	if columnMap["name"] == "" || columnMap["floorCount"] == "" {
 		return nil, &custom.RequestError{
 			Status:  http.StatusBadRequest,
-			Message: "Required columns not found in header row",
-		}
+			Message: fmt.Sprintf("Required columns ('%v' and '%v') not found.", towerNameHeader, towerFloorCountHeader)}
 	}
 
 	return columnMap, nil
@@ -171,7 +171,7 @@ func (h *hBulkCreateTower) parseTowerRows(rows chan xlsxreader.Row, columnMap ma
 					if err != nil {
 						return nil, &custom.RequestError{
 							Status:  http.StatusBadRequest,
-							Message: "Invalid floor value provided.",
+							Message: fmt.Sprintf("Invalid floor found: %v", cell.Value),
 						}
 					}
 					tower.FloorCount = floorCount

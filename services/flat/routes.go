@@ -19,6 +19,7 @@ func (s *flatService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/", s.createNewFlat)
+		router.Post("/tower/{towerId}/bulk", s.createBulkFlats)
 		router.Delete("/{flat}", s.deleteFlat)
 		router.Patch("/{flatId}", s.updateFlatDetails)
 	})
