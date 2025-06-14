@@ -66,7 +66,7 @@ func (a *app) createRouter() *chi.Mux {
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 	mux.Use(middleware.StripSlashes)
-	mux.Use(middleware.AllowContentType("application/json"))
+	mux.Use(middleware.AllowContentType("application/json", "multipart/form-data"))
 
 	mux.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
