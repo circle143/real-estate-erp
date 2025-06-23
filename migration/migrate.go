@@ -11,7 +11,7 @@ func Migrate(db *gorm.DB) {
 		&models.Organization{},
 		&models.User{},
 		&models.Society{},
-		&models.FlatType{},
+		//&models.FlatType{},
 		&models.Tower{},
 		&models.Flat{},
 		&models.Customer{},

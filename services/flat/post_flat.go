@@ -2,7 +2,6 @@ package flat
 
 import (
 	"circledigital.in/real-state-erp/models"
-	flatType "circledigital.in/real-state-erp/services/flat-type"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
@@ -10,26 +9,32 @@ import (
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"github.com/thedatashed/xlsxreader"
 	"gorm.io/gorm"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
-	"strconv"
 	"strings"
-	"unicode"
 )
 
 type hCreateFlat struct {
-	Tower       string `validate:"required,uuid"`
-	FlatType    string `validate:"required,uuid"`
-	Name        string `validate:"required"`
-	FloorNumber int    `validate:"gte=0"`
-	Facing      string `validate:"required"`
+	Tower string `validate:"required,uuid"`
+	//FlatType    string `validate:"required,uuid"`
+	UnitType     string  `validate:"required"`
+	SaleableArea float64 `validate:"required"`
+	Name         string  `validate:"required"`
+	FloorNumber  int     `validate:"gte=0"`
+	Facing       string  `validate:"required"`
 }
 
 func (h *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
+	// validate flat name
+	_, err := parseFlatIdentifier(h.Name)
+	if err != nil {
+		return err
+	}
+
 	// validate facing
 	facing := custom.Facing(h.Facing)
 	if !facing.IsValid() {
@@ -40,11 +45,11 @@ func (h *hCreateFlat) validate(db *gorm.DB, orgId, society string) error {
 	}
 
 	// validate correct flat type
-	flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(h.FlatType))
-	err := common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
-	if err != nil {
-		return err
-	}
+	//flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(h.FlatType))
+	//err := common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
+	//if err != nil {
+	//	return err
+	//}
 
 	// validate tower belongs to correct society and organization
 	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(h.Tower))
@@ -81,11 +86,13 @@ func (h *hCreateFlat) execute(db *gorm.DB, orgId, society string) (*models.Flat,
 	}
 
 	flat := models.Flat{
-		TowerId:     uuid.MustParse(h.Tower),
-		FlatTypeId:  uuid.MustParse(h.FlatType),
-		Name:        h.Name,
-		FloorNumber: h.FloorNumber,
-		Facing:      custom.Facing(h.Facing),
+		TowerId: uuid.MustParse(h.Tower),
+		//FlatTypeId:  uuid.MustParse(h.FlatType),
+		UnitType:     h.UnitType,
+		SaleableArea: decimal.NewFromFloat(h.SaleableArea),
+		Name:         h.Name,
+		FloorNumber:  h.FloorNumber,
+		Facing:       custom.Facing(h.Facing),
 	}
 
 	result := db.Create(&flat)
@@ -122,39 +129,13 @@ func (s *flatService) createNewFlat(w http.ResponseWriter, r *http.Request) {
 
 type hBulkCreateFlats struct{}
 
-// parseFlatIdentifier parses identifiers like "asd-1001" or "A-101"
-func (h *hBulkCreateFlats) parseFlatIdentifier(input string) (int, error) {
-	customError := &custom.RequestError{
-		Status:  http.StatusBadRequest,
-		Message: "invalid format: expected something like 'A-101' or 'A-1001'",
-	}
-
-	parts := strings.Split(input, "-")
-	if len(parts) != 2 {
-		return -1, customError
-	}
-
-	numPart := strings.TrimSpace(parts[1])
-	numPart = strings.TrimLeftFunc(numPart, func(r rune) bool {
-		return !unicode.IsDigit(r)
-	})
-
-	if len(numPart) < 2 {
-		return -1, customError
-	}
-
-	// Split floor and flat: floor = all digits except last 2, flat = last 2 digits
-	floorStr := numPart[:len(numPart)-2]
-
-	floor, err := strconv.Atoi(floorStr)
+func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, societyRera, towerId string) (multipart.File, error) {
+	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(towerId))
+	err := common.IsSameSociety(towerSocietyInfoService, orgId, societyRera)
 	if err != nil {
-		return -1, customError
+		return nil, err
 	}
 
-	return floor, nil
-}
-
-func (h *hBulkCreateFlats) validate(r *http.Request) (multipart.File, error) {
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		return nil, &custom.RequestError{
@@ -188,7 +169,7 @@ func (h *hBulkCreateFlats) validate(r *http.Request) (multipart.File, error) {
 	return file, nil
 }
 
-func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, orgId, society, towerId string, db *gorm.DB) ([]*models.Flat, error) {
+func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, towerId string, db *gorm.DB) ([]*models.Flat, error) {
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
@@ -206,19 +187,19 @@ func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, orgId, soci
 	}
 
 	// get all flat types
-	var flatTypes []models.FlatType
-	tx := db.Where("org_id = ? and society_id = ?", orgId, society).Find(&flatTypes)
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-	if tx.RowsAffected == 0 {
-		return nil, &custom.RequestError{
-			Status:  http.StatusNotFound,
-			Message: "You need to first create society flat types to bulk create flats.",
-		}
-	}
+	//var flatTypes []models.FlatType
+	//tx := db.Where("org_id = ? and society_id = ?", orgId, society).Find(&flatTypes)
+	//if tx.Error != nil {
+	//	return nil, tx.Error
+	//}
+	//if tx.RowsAffected == 0 {
+	//	return nil, &custom.RequestError{
+	//		Status:  http.StatusNotFound,
+	//		Message: "You need to first create society flat types to bulk create flats.",
+	//	}
+	//}
 
-	flats, err := h.parseFlatRows(rows, columnMap, towerId, flatTypes)
+	flats, err := h.parseFlatRows(rows, columnMap, towerId)
 	if err != nil {
 		return nil, err
 	}
@@ -230,9 +211,10 @@ func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, orgId, soci
 // getColumnMap maps required headers to their corresponding Excel column letters
 func (h *hBulkCreateFlats) getColumnMap(headerRow *xlsxreader.Row) (map[string]string, error) {
 	const (
-		nameHeader      = "Unit No"
-		superAreaHeader = "Saleable Area (in sq. ft.)"
-		facing          = "Flat facing"
+		nameHeader        = "Unit No"
+		salableAreaHeader = "Saleable Area (in sq. ft.)"
+		facingHeader      = "Flat facing"
+		unitTypeHeader    = "Unit Type"
 	)
 
 	columnMap := make(map[string]string)
@@ -242,17 +224,19 @@ func (h *hBulkCreateFlats) getColumnMap(headerRow *xlsxreader.Row) (map[string]s
 		switch val {
 		case nameHeader:
 			columnMap["name"] = cell.Column
-		case superAreaHeader:
+		case salableAreaHeader:
 			columnMap["area"] = cell.Column
-		case facing:
+		case facingHeader:
 			columnMap["facing"] = cell.Column
+		case unitTypeHeader:
+			columnMap["unitType"] = cell.Column
 		}
 	}
 
-	if columnMap["name"] == "" || columnMap["area"] == "" || columnMap["facing"] == "" {
+	if columnMap["name"] == "" || columnMap["area"] == "" || columnMap["facing"] == "" || columnMap["unitType"] == "" {
 		return nil, &custom.RequestError{
 			Status:  http.StatusBadRequest,
-			Message: fmt.Sprintf("Required columns ('%v', '%v' and '%v') not found.", nameHeader, superAreaHeader, facing),
+			Message: fmt.Sprintf("Required columns ('%v', '%v', '%v' and '%v') not found.", nameHeader, salableAreaHeader, facingHeader, unitTypeHeader),
 		}
 	}
 
@@ -260,12 +244,12 @@ func (h *hBulkCreateFlats) getColumnMap(headerRow *xlsxreader.Row) (map[string]s
 }
 
 // parseFlatRows extracts tower data from Excel rows
-func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map[string]string, towerId string, flatTypes []models.FlatType) ([]*models.Flat, error) {
-	flatTypeMap := make(map[string]uuid.UUID)
-	for _, ft := range flatTypes {
-		flatTypeMap[ft.SuperArea.String()] = ft.Id
-		log.Println(ft.SuperArea)
-	}
+func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map[string]string, towerId string) ([]*models.Flat, error) {
+	//flatTypeMap := make(map[string]uuid.UUID)
+	//for _, ft := range flatTypes {
+	//	flatTypeMap[ft.SuperArea.String()] = ft.Id
+	//	log.Println(ft.SuperArea)
+	//}
 
 	towerUUID := uuid.MustParse(towerId)
 	var flats []*models.Flat
@@ -279,7 +263,7 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 			switch cell.Column {
 			case columnMap["name"]:
 				flat.Name = strings.TrimSpace(cell.Value)
-				floor, err := h.parseFlatIdentifier(flat.Name)
+				floor, err := parseFlatIdentifier(flat.Name)
 				if err != nil {
 					return nil, &custom.RequestError{
 						Status:  http.StatusBadRequest,
@@ -289,13 +273,21 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 				flat.FloorNumber = floor
 			case columnMap["area"]:
 				if cell.Type == xlsxreader.TypeNumerical {
-					if _, ok := flatTypeMap[cell.Value]; !ok {
+					var err error
+					flat.SaleableArea, err = decimal.NewFromString(cell.Value)
+					if err != nil {
 						return nil, &custom.RequestError{
 							Status:  http.StatusBadRequest,
-							Message: fmt.Sprintf("No flat type created for super area: %v", cell.Value),
+							Message: fmt.Sprintf("Invalid salable area provided, got: %v", cell.Value),
 						}
 					}
-					flat.FlatTypeId = flatTypeMap[cell.Value]
+					//if _, ok := flatTypeMap[cell.Value]; !ok {
+					//	return nil, &custom.RequestError{
+					//		Status:  http.StatusBadRequest,
+					//		Message: fmt.Sprintf("No flat type created for super area: %v", cell.Value),
+					//	}
+					//}
+					//flat.FlatTypeId = flatTypeMap[cell.Value]
 				}
 			case columnMap["facing"]:
 				facing := custom.Facing(cell.Value)
@@ -306,7 +298,10 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 					}
 				}
 				flat.Facing = facing
+			case columnMap["unitType"]:
+				flat.UnitType = cell.Value
 			}
+
 		}
 
 		// Ignore empty rows
@@ -319,7 +314,7 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 }
 
 func (h *hBulkCreateFlats) execute(db *gorm.DB, r *http.Request, orgId, society, towerId string) ([]*models.Flat, error) {
-	file, err := h.validate(r)
+	file, err := h.validate(r, db, orgId, society, towerId)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +322,7 @@ func (h *hBulkCreateFlats) execute(db *gorm.DB, r *http.Request, orgId, society,
 		_ = file.Close()
 	}(file)
 
-	flats, err := h.getFlatsDataFromFile(file, orgId, society, towerId, db)
+	flats, err := h.getFlatsDataFromFile(file, towerId, db)
 	if err != nil {
 		if strings.Contains(err.Error(), "tower_flat_unique") {
 			return nil, &custom.RequestError{

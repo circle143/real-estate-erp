@@ -41,7 +41,7 @@ func (h *hGetAllSocietyFlats) execute(db *gorm.DB, orgId, societyRera, cursor, f
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("towers.society_id = ? AND towers.org_id = ?", societyRera, orgId).
-		Preload("FlatType").
+		//Preload("FlatType").
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
@@ -104,7 +104,7 @@ func (h *hGetAllTowerFlats) execute(db *gorm.DB, orgId, societyRera, towerId, cu
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("flats.tower_id = ? AND towers.society_id = ? AND towers.org_id = ?", towerId, societyRera, orgId).
-		Preload("FlatType").
+		//Preload("FlatType").
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").
@@ -176,7 +176,7 @@ func (h *hGetSocietyFlatByName) execute(db *gorm.DB, orgId, society, name, curso
 	query := db.
 		Joins("JOIN towers ON towers.id = flats.tower_id").
 		Where("towers.society_id = ? AND towers.org_id = ? and flats.name like ?", society, orgId, name+"%").
-		Preload("FlatType").
+		//Preload("FlatType").
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").

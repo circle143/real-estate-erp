@@ -2,26 +2,34 @@ package flat
 
 import (
 	"circledigital.in/real-state-erp/models"
-	flatType "circledigital.in/real-state-erp/services/flat-type"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"net/http"
 )
 
 type hUpdateFlatDetails struct {
-	Tower       string `validate:"required,uuid"`
-	FlatType    string `validate:"required,uuid"`
-	Name        string `validate:"required"`
-	FloorNumber int    `validate:"gte=0"`
-	Facing      string `validate:"required"`
+	Tower string `validate:"required,uuid"`
+	//FlatType    string `validate:"required,uuid"`
+	UnitType     string  `validate:"required"`
+	SaleableArea float64 `validate:"required"`
+	Name         string  `validate:"required"`
+	FloorNumber  int     `validate:"gte=0"`
+	Facing       string  `validate:"required"`
 }
 
 func (h *hUpdateFlatDetails) validate(db *gorm.DB, orgId, society, flatId string) error {
+	// validate flat name
+	_, err := parseFlatIdentifier(h.Name)
+	if err != nil {
+		return err
+	}
+
 	// validate facing
 	facing := custom.Facing(h.Facing)
 	if !facing.IsValid() {
@@ -33,17 +41,17 @@ func (h *hUpdateFlatDetails) validate(db *gorm.DB, orgId, society, flatId string
 
 	// validate flat
 	flatSocietyInfo := CreateFlatSocietyInfoService(db, uuid.MustParse(flatId))
-	err := common.IsSameSociety(flatSocietyInfo, orgId, society)
+	err = common.IsSameSociety(flatSocietyInfo, orgId, society)
 	if err != nil {
 		return err
 	}
 
 	// validate correct flat type
-	flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(h.FlatType))
-	err = common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
-	if err != nil {
-		return err
-	}
+	//flatTypeSocietyInfo := flatType.CreateFlatTypeSocietyInfoService(db, uuid.MustParse(h.FlatType))
+	//err = common.IsSameSociety(flatTypeSocietyInfo, orgId, society)
+	//if err != nil {
+	//	return err
+	//}
 
 	// validate tower belongs to correct society and organization
 	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(h.Tower))
@@ -82,11 +90,13 @@ func (h *hUpdateFlatDetails) execute(db *gorm.DB, orgId, society, flatId string)
 	return db.Model(&models.Flat{
 		Id: uuid.MustParse(flatId),
 	}).Updates(models.Flat{
-		TowerId:     uuid.MustParse(h.Tower),
-		FlatTypeId:  uuid.MustParse(h.FlatType),
-		Name:        h.Name,
-		FloorNumber: h.FloorNumber,
-		Facing:      custom.Facing(h.Facing),
+		TowerId: uuid.MustParse(h.Tower),
+		//FlatTypeId:  uuid.MustParse(h.FlatType),
+		UnitType:     h.UnitType,
+		SaleableArea: decimal.NewFromFloat(h.SaleableArea),
+		Name:         h.Name,
+		FloorNumber:  h.FloorNumber,
+		Facing:       custom.Facing(h.Facing),
 	}).Error
 }
 

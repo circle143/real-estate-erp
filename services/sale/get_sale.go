@@ -206,7 +206,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 	// 1 -> get all tower sold flats
 	var soldFlats []models.Flat
 	err = db.
-		Preload("FlatType").
+		//Preload("FlatType").
 		Preload("SaleDetail").
 		Preload("SaleDetail.Customers").
 		Preload("SaleDetail.CompanyCustomer").

@@ -75,11 +75,14 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 		flatModel := models.Flat{
 			Id: uuid.MustParse(flatId),
 		}
-		err := tx.Preload("FlatType").First(&flatModel).Error
+		err := tx.
+			//Preload("FlatType").
+			First(&flatModel).Error
 		if err != nil {
 			return err
 		}
-		superArea := flatModel.FlatType.SuperArea
+		//superArea := flatModel.FlatType.SuperArea
+		salableArea := flatModel.SaleableArea
 
 		// get required preference location charges
 		var locationCharges []models.PreferenceLocationCharge
@@ -127,8 +130,8 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 			Type:      "basic-cost",
 			Price:     basicCost,
 			Summary:   "Basic flat cost",
-			Total:     superArea.Mul(basicCost),
-			SuperArea: superArea,
+			Total:     salableArea.Mul(basicCost),
+			SuperArea: salableArea,
 		}
 		totalPrice = totalPrice.Add(basicCostDetail.Total)
 		//log.Printf("total price: %v\n", totalPrice.String())
@@ -142,8 +145,8 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 				Type:      "preference-location",
 				Price:     charge.Price,
 				Summary:   charge.Summary,
-				Total:     superArea.Mul(charge.Price),
-				SuperArea: superArea,
+				Total:     salableArea.Mul(charge.Price),
+				SuperArea: salableArea,
 			}
 			totalPrice = totalPrice.Add(detail.Total)
 			//log.Printf("total price: %v\n", totalPrice.String())
@@ -158,7 +161,7 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 					Type:      "other",
 					Price:     charge.Price,
 					Summary:   charge.Summary,
-					SuperArea: superArea,
+					SuperArea: salableArea,
 				}
 
 				if charge.Recurring && charge.AdvanceMonths >= 1 {
@@ -166,13 +169,13 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 					if charge.Fixed {
 						detail.Total = charge.Price.Mul(advanceMonths)
 					} else {
-						detail.Total = superArea.Mul(charge.Price).Mul(advanceMonths)
+						detail.Total = salableArea.Mul(charge.Price).Mul(advanceMonths)
 					}
 				} else {
 					if charge.Fixed {
 						detail.Total = charge.Price
 					} else {
-						detail.Total = superArea.Mul(charge.Price)
+						detail.Total = salableArea.Mul(charge.Price)
 					}
 				}
 

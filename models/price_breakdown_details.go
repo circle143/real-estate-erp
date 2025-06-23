@@ -12,7 +12,7 @@ type PriceBreakdownDetail struct {
 	Price     decimal.Decimal `json:"price"`
 	Summary   string          `json:"summary"`
 	Total     decimal.Decimal `json:"total"`
-	SuperArea decimal.Decimal `json:"superArea"`
+	SuperArea decimal.Decimal `json:"salableArea"`
 }
 
 type PriceBreakdownDetails []PriceBreakdownDetail
