@@ -79,18 +79,18 @@ func (h *hGetBankReport) execute(db *gorm.DB, orgId, society, bankId string) (*m
 
 		if h.RecordsTill.IsZero() {
 			return db.
-				Where("created_at <= ?", h.RecordsFrom).
+				Where("created_at >= ?", h.RecordsFrom).
 				Order("created_at DESC")
 		}
 
 		if h.RecordsFrom.IsZero() {
 			return db.
-				Where("created_at >= ?", h.RecordsTill).
+				Where("created_at <= ?", h.RecordsTill.Add(time.Hour*24)).
 				Order("created_at DESC")
 		}
 
 		return db.
-			Where("created_at <= ? AND created_at >= ?", h.RecordsFrom, h.RecordsTill).
+			Where("created_at >= ? AND created_at <= ?", h.RecordsFrom, h.RecordsTill.Add(time.Hour*24)).
 			Order("created_at DESC")
 	}).Preload("ClearedReceipts.Receipt").
 		Preload("ClearedReceipts.Receipt.Sale").
