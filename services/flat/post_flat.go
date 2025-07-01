@@ -129,16 +129,16 @@ func (s *flatService) createNewFlat(w http.ResponseWriter, r *http.Request) {
 
 type hBulkCreateFlats struct{}
 
-func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, societyRera, towerId string) (multipart.File, error) {
+func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, societyRera, towerId string) (multipart.File, string, error) {
 	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, uuid.MustParse(towerId))
 	err := common.IsSameSociety(towerSocietyInfoService, orgId, societyRera)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		return nil, &custom.RequestError{
+		return nil, "", &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Missing file in form data",
 		}
@@ -146,7 +146,7 @@ func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, society
 
 	// Check extension
 	if !strings.HasSuffix(strings.ToLower(header.Filename), ".xlsx") {
-		return nil, &custom.RequestError{
+		return nil, "", &custom.RequestError{
 			Status:  http.StatusUnsupportedMediaType,
 			Message: "Only .xlsx files are allowed",
 		}
@@ -155,7 +155,7 @@ func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, society
 	// Optional: Check magic number (first few bytes of a file)
 	buffer := make([]byte, 4)
 	if _, err := file.Read(buffer); err != nil {
-		return nil, &custom.RequestError{
+		return nil, "", &custom.RequestError{
 			Status:  http.StatusInternalServerError,
 			Message: "Unable to read file",
 		}
@@ -163,13 +163,19 @@ func (h *hBulkCreateFlats) validate(r *http.Request, db *gorm.DB, orgId, society
 
 	// Reset file read pointer to 0 for further processing later
 	if _, err := file.Seek(0, 0); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return file, nil
+	towerDetails := models.Tower{Id: uuid.MustParse(towerId)}
+	err = db.First(&towerDetails).Error
+	if err != nil {
+		return nil, "", err
+	}
+
+	return file, towerDetails.Name, nil
 }
 
-func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, towerId string, db *gorm.DB) ([]*models.Flat, error) {
+func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, towerId, towerName string, db *gorm.DB) ([]*models.Flat, error) {
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, err
@@ -199,7 +205,7 @@ func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, towerId str
 	//	}
 	//}
 
-	flats, err := h.parseFlatRows(rows, columnMap, towerId)
+	flats, err := h.parseFlatRows(rows, columnMap, towerId, towerName)
 	if err != nil {
 		return nil, err
 	}
@@ -211,32 +217,46 @@ func (h *hBulkCreateFlats) getFlatsDataFromFile(file multipart.File, towerId str
 // getColumnMap maps required headers to their corresponding Excel column letters
 func (h *hBulkCreateFlats) getColumnMap(headerRow *xlsxreader.Row) (map[string]string, error) {
 	const (
-		nameHeader        = "Unit No"
-		salableAreaHeader = "Saleable Area (in sq. ft.)"
-		facingHeader      = "Flat facing"
-		unitTypeHeader    = "Unit Type"
+		nameHeaderMsg        = "Unit No"
+		salableAreaHeaderMsg = "Saleable Area (in sq. ft.)"
+		//facingHeader      = "Flat facing"
+		unitTypeHeaderMsg = "Unit Type"
+		towerNumberMsg    = "Tower No"
+	)
+	const (
+		nameHeader        = "unitno"
+		salableAreaHeader = "saleablearea(insq.ft.)"
+		unitTypeHeader    = "unittype"
+		towerNumber       = "towerno"
 	)
 
 	columnMap := make(map[string]string)
 
 	for _, cell := range headerRow.Cells {
-		val := strings.TrimSpace(cell.Value)
+		//val := strings.TrimSpace(cell.Value)
+		val := strings.ToLower(strings.ReplaceAll(cell.Value, " ", ""))
+		val = strings.ReplaceAll(val, "\u00a0", "")
 		switch val {
 		case nameHeader:
 			columnMap["name"] = cell.Column
 		case salableAreaHeader:
 			columnMap["area"] = cell.Column
-		case facingHeader:
-			columnMap["facing"] = cell.Column
+		case towerNumber:
+			columnMap["towerNumber"] = cell.Column
+		//case facingHeader:
+		//	columnMap["facing"] = cell.Column
 		case unitTypeHeader:
 			columnMap["unitType"] = cell.Column
 		}
 	}
 
-	if columnMap["name"] == "" || columnMap["area"] == "" || columnMap["facing"] == "" || columnMap["unitType"] == "" {
+	if columnMap["name"] == "" || columnMap["area"] == "" || columnMap["towerNumber"] == "" || columnMap["unitType"] == "" {
+		//columnMap["facing"] == ""
+
 		return nil, &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: fmt.Sprintf("Required columns ('%v', '%v', '%v' and '%v') not found.", nameHeader, salableAreaHeader, facingHeader, unitTypeHeader),
+			Status: http.StatusBadRequest,
+			//Message: fmt.Sprintf("Required columns ('%v', '%v', '%v' and '%v') not found.", nameHeader, salableAreaHeader, facingHeader, unitTypeHeader),
+			Message: fmt.Sprintf("Required columns ('%v', '%v', '%v' and '%v') not found.", nameHeaderMsg, salableAreaHeaderMsg, towerNumberMsg, unitTypeHeaderMsg),
 		}
 	}
 
@@ -244,7 +264,7 @@ func (h *hBulkCreateFlats) getColumnMap(headerRow *xlsxreader.Row) (map[string]s
 }
 
 // parseFlatRows extracts tower data from Excel rows
-func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map[string]string, towerId string) ([]*models.Flat, error) {
+func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map[string]string, towerId, towerName string) ([]*models.Flat, error) {
 	//flatTypeMap := make(map[string]uuid.UUID)
 	//for _, ft := range flatTypes {
 	//	flatTypeMap[ft.SuperArea.String()] = ft.Id
@@ -289,15 +309,22 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 					//}
 					//flat.FlatTypeId = flatTypeMap[cell.Value]
 				}
-			case columnMap["facing"]:
-				facing := custom.Facing(cell.Value)
-				if !facing.IsValid() {
+			//case columnMap["facing"]:
+			//	facing := custom.Facing(cell.Value)
+			//	if !facing.IsValid() {
+			//		return nil, &custom.RequestError{
+			//			Status:  http.StatusBadRequest,
+			//			Message: fmt.Sprintf("Invalid flat facing value provided: %v\nRequired values are: '%v' and '%v'", cell.Value, custom.DEFAULT, custom.SPECIAL),
+			//		}
+			//	}
+			//	flat.Facing = facing
+			case columnMap["towerNumber"]:
+				if cell.Value != towerName {
 					return nil, &custom.RequestError{
 						Status:  http.StatusBadRequest,
-						Message: fmt.Sprintf("Invalid flat facing value provided: %v\nRequired values are: '%v' and '%v'", cell.Value, custom.DEFAULT, custom.SPECIAL),
+						Message: fmt.Sprintf("Tower mismatch. Required tower number: %v, but got: %v", towerName, cell.Value),
 					}
 				}
-				flat.Facing = facing
 			case columnMap["unitType"]:
 				flat.UnitType = cell.Value
 			}
@@ -314,7 +341,7 @@ func (h *hBulkCreateFlats) parseFlatRows(rows chan xlsxreader.Row, columnMap map
 }
 
 func (h *hBulkCreateFlats) execute(db *gorm.DB, r *http.Request, orgId, society, towerId string) ([]*models.Flat, error) {
-	file, err := h.validate(r, db, orgId, society, towerId)
+	file, towerName, err := h.validate(r, db, orgId, society, towerId)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +349,7 @@ func (h *hBulkCreateFlats) execute(db *gorm.DB, r *http.Request, orgId, society,
 		_ = file.Close()
 	}(file)
 
-	flats, err := h.getFlatsDataFromFile(file, towerId, db)
+	flats, err := h.getFlatsDataFromFile(file, towerId, towerName, db)
 	if err != nil {
 		if strings.Contains(err.Error(), "tower_flat_unique") {
 			return nil, &custom.RequestError{
