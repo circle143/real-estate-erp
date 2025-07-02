@@ -125,14 +125,21 @@ func (h *hBulkCreateTower) createTowersFromFile(file multipart.File, orgId, soci
 // getColumnMap maps required headers to their corresponding Excel column letters
 func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) (map[string]string, error) {
 	const (
-		towerNameHeader       = "Towers"
-		towerFloorCountHeader = "No. Of Floors In Towers"
+		towerNameHeaderMsg       = "Towers"
+		towerFloorCountHeaderMsg = "No. Of Floors In Towers"
+	)
+
+	const (
+		towerNameHeader       = "towers"
+		towerFloorCountHeader = "no.offloorsintowers"
 	)
 
 	columnMap := make(map[string]string)
 
 	for _, cell := range headerRow.Cells {
-		val := strings.TrimSpace(cell.Value)
+		//val := strings.TrimSpace(cell.Value)
+		val := strings.ToLower(strings.ReplaceAll(cell.Value, " ", ""))
+		val = strings.ReplaceAll(val, "\u00a0", "")
 		switch val {
 		case towerNameHeader:
 			columnMap["name"] = cell.Column
@@ -144,7 +151,7 @@ func (h *hBulkCreateTower) getColumnMap(headerRow *xlsxreader.Row) (map[string]s
 	if columnMap["name"] == "" || columnMap["floorCount"] == "" {
 		return nil, &custom.RequestError{
 			Status:  http.StatusBadRequest,
-			Message: fmt.Sprintf("Required columns ('%v' and '%v') not found.", towerNameHeader, towerFloorCountHeader)}
+			Message: fmt.Sprintf("Required columns ('%v' and '%v') not found.", towerNameHeaderMsg, towerFloorCountHeaderMsg)}
 	}
 
 	return columnMap, nil
