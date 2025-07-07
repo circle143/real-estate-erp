@@ -3,7 +3,6 @@ package init
 import (
 	"circledigital.in/real-state-erp/services/bank"
 	"circledigital.in/real-state-erp/services/broker"
-	"circledigital.in/real-state-erp/services/charges"
 	"circledigital.in/real-state-erp/services/flat"
 	"circledigital.in/real-state-erp/services/organization"
 	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
@@ -31,7 +30,7 @@ var services = []serviceFactory{
 	tower.CreateTowerService,
 	flat.CreateFlatService,
 	sale.CreateSaleService,
-	charges.CreateChargesService,
+	//charges.CreateChargesService,
 	paymentPlan.CreatePaymentPlanService,
 	broker.CreateBrokerService,
 	bank.CreateBankService,

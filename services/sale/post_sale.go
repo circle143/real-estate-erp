@@ -14,13 +14,19 @@ import (
 	"net/http"
 )
 
+type optionalChargesDetails struct {
+	Name      string  `validate:"required"`
+	TotalCost float64 `validate:"required"`
+}
+
 type hCreateSale struct {
-	Type            string            `validate:"required"`
-	Details         []customerDetails `validate:"omitempty,dive"`
-	BasicCost       float64           `validate:"required"`
-	OptionalCharges []string
-	CompanyBuyer    companyCustomerDetails `validate:"omitempty"`
-	BrokerId        string                 `validate:"required,uuid"`
+	Type      string            `validate:"required"`
+	Details   []customerDetails `validate:"omitempty,dive"`
+	BasicCost float64           `validate:"required"`
+	//OptionalCharges []string
+	OtherCharges []optionalChargesDetails `validate:"omitempty,dive"`
+	CompanyBuyer companyCustomerDetails   `validate:"omitempty"`
+	BrokerId     string                   `validate:"required,uuid"`
 }
 
 func (h *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
@@ -85,41 +91,41 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 		salableArea := flatModel.SaleableArea
 
 		// get required preference location charges
-		var locationCharges []models.PreferenceLocationCharge
-		locationChargeQuery := tx.
-			Where("org_id = ? and society_id = ? and disable = false", orgId, society)
-		if flatModel.Facing == custom.SPECIAL {
-			locationChargeQuery = locationChargeQuery.Where(
-				"(type = ? AND floor = ?) OR type = ?",
-				custom.FLOOR, flatModel.FloorNumber, custom.FACING,
-			)
-		} else {
-			locationChargeQuery = locationChargeQuery.Where("type = ? AND floor = ?", custom.FLOOR, flatModel.FloorNumber)
-		}
-
-		err = locationChargeQuery.Find(&locationCharges).Error
-		if err != nil {
-			return err
-		}
+		//var locationCharges []models.PreferenceLocationCharge
+		//locationChargeQuery := tx.
+		//	Where("org_id = ? and society_id = ? and disable = false", orgId, society)
+		//if flatModel.Facing == custom.SPECIAL {
+		//	locationChargeQuery = locationChargeQuery.Where(
+		//		"(type = ? AND floor = ?) OR type = ?",
+		//		custom.FLOOR, flatModel.FloorNumber, custom.FACING,
+		//	)
+		//} else {
+		//	locationChargeQuery = locationChargeQuery.Where("type = ? AND floor = ?", custom.FLOOR, flatModel.FloorNumber)
+		//}
+		//
+		//err = locationChargeQuery.Find(&locationCharges).Error
+		//if err != nil {
+		//	return err
+		//}
 
 		// other charges
-		var otherCharges []models.OtherCharge
-		err = tx.
-			Where("org_id = ? and society_id = ? and disable = false and optional = false", orgId, society).
-			Find(&otherCharges).Error
-		if err != nil {
-			return err
-		}
+		//var otherCharges []models.OtherCharge
+		//err = tx.
+		//	Where("org_id = ? and society_id = ? and disable = false and optional = false", orgId, society).
+		//	Find(&otherCharges).Error
+		//if err != nil {
+		//	return err
+		//}
 
 		// optional charges
-		var optionalCharges []models.OtherCharge
-		err = tx.
-			Where("org_id = ? and society_id = ? and disable = false and optional = true", orgId, society).
-			Where("id in ?", h.OptionalCharges).
-			Find(&optionalCharges).Error
-		if err != nil {
-			return err
-		}
+		//var optionalCharges []models.OtherCharge
+		//err = tx.
+		//	Where("org_id = ? and society_id = ? and disable = false and optional = true", orgId, society).
+		//	Where("id in ?", h.OptionalCharges).
+		//	Find(&optionalCharges).Error
+		//if err != nil {
+		//	return err
+		//}
 
 		// price calculation
 		var priceBreakdowns []models.PriceBreakdownDetail
@@ -140,54 +146,68 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 		priceBreakdowns = append(priceBreakdowns, basicCostDetail)
 
 		// Add location charges
-		for _, charge := range locationCharges {
+		//for _, charge := range locationCharges {
+		//	detail := models.PriceBreakdownDetail{
+		//		Type:      "preference-location",
+		//		Price:     charge.Price,
+		//		Summary:   charge.Summary,
+		//		Total:     salableArea.Mul(charge.Price),
+		//		SuperArea: salableArea,
+		//	}
+		//	totalPrice = totalPrice.Add(detail.Total)
+		//	//log.Printf("total price: %v\n", totalPrice.String())
+		//	//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
+		//	priceBreakdowns = append(priceBreakdowns, detail)
+		//}
+
+		// add other charges
+		for _, chargeDetails := range h.OtherCharges {
+			priceDecimal := decimal.NewFromFloat(chargeDetails.TotalCost)
 			detail := models.PriceBreakdownDetail{
-				Type:      "preference-location",
-				Price:     charge.Price,
-				Summary:   charge.Summary,
-				Total:     salableArea.Mul(charge.Price),
+				Type:      "other-charges",
+				Price:     priceDecimal,
+				Summary:   chargeDetails.Name,
 				SuperArea: salableArea,
+				Total:     priceDecimal,
 			}
-			totalPrice = totalPrice.Add(detail.Total)
-			//log.Printf("total price: %v\n", totalPrice.String())
-			//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
+			totalPrice = totalPrice.Add(priceDecimal)
 			priceBreakdowns = append(priceBreakdowns, detail)
 		}
 
 		// Helper to process other/optional charges
-		processOtherCharges := func(charges []models.OtherCharge) {
-			for _, charge := range charges {
-				detail := models.PriceBreakdownDetail{
-					Type:      "other",
-					Price:     charge.Price,
-					Summary:   charge.Summary,
-					SuperArea: salableArea,
-				}
-
-				if charge.Recurring && charge.AdvanceMonths >= 1 {
-					advanceMonths := decimal.NewFromInt(int64(charge.AdvanceMonths))
-					if charge.Fixed {
-						detail.Total = charge.Price.Mul(advanceMonths)
-					} else {
-						detail.Total = salableArea.Mul(charge.Price).Mul(advanceMonths)
-					}
-				} else {
-					if charge.Fixed {
-						detail.Total = charge.Price
-					} else {
-						detail.Total = salableArea.Mul(charge.Price)
-					}
-				}
-
-				totalPrice = totalPrice.Add(detail.Total)
-				//log.Printf("total price: %v\n", totalPrice.String())
-				//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
-				priceBreakdowns = append(priceBreakdowns, detail)
-			}
-		}
-
-		processOtherCharges(otherCharges)
-		processOtherCharges(optionalCharges)
+		//processOtherCharges := func(charges []models.OtherCharge) {
+		//	for _, charge := range charges {
+		//		detail := models.PriceBreakdownDetail{
+		//			Type:      "other",
+		//			Price:     charge.Price,
+		//			Summary:   charge.Summary,
+		//			SuperArea: salableArea,
+		//		}
+		//
+		//		if charge.Recurring && charge.AdvanceMonths >= 1 {
+		//			advanceMonths := decimal.NewFromInt(int64(charge.AdvanceMonths))
+		//			if charge.Fixed {
+		//				detail.Total = charge.Price.Mul(advanceMonths)
+		//			} else {
+		//				detail.Total = salableArea.Mul(charge.Price).Mul(advanceMonths)
+		//			}
+		//		} else {
+		//			if charge.Fixed {
+		//				detail.Total = charge.Price
+		//			} else {
+		//				detail.Total = salableArea.Mul(charge.Price)
+		//			}
+		//		}
+		//
+		//		totalPrice = totalPrice.Add(detail.Total)
+		//		//log.Printf("total price: %v\n", totalPrice.String())
+		//		//log.Printf("%v: %v\n\n", detail.Summary, detail.Total.String())
+		//		priceBreakdowns = append(priceBreakdowns, detail)
+		//	}
+		//}
+		//
+		//processOtherCharges(otherCharges)
+		//processOtherCharges(optionalCharges)
 
 		//log.Printf("total price: %v\n", totalPrice.String())
 		//
