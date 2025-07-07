@@ -64,11 +64,12 @@ const (
 	CIRCLEADMIN UserRole = "circle-admin"
 	ORGADMIN    UserRole = "org-admin"
 	ORGUSER     UserRole = "org-user"
+	ORGVIEWER   UserRole = "org-viewer"
 )
 
 func (r UserRole) IsValid() bool {
 	switch r {
-	case CIRCLEADMIN, ORGADMIN, ORGUSER:
+	case CIRCLEADMIN, ORGADMIN, ORGUSER, ORGVIEWER:
 		return true
 	default:
 		return false

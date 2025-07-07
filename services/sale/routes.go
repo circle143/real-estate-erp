@@ -29,6 +29,15 @@ func (s *saleService) GetRoutes() *chi.Mux {
 		router.Post("/flat/{flat}", s.createSale)
 		//router.Post("/{saleId}/add-payment-installment/{paymentId}", s.addPaymentInstallmentForSale)
 		router.Get("/{saleId}/payment-breakdown", s.getSalePaymentBreakDown)
+		//router.Get("/report", s.getSocietySalesReport)
+		//router.Get("/tower/{towerId}/report", s.getTowerSalesReport)
+
+	})
+
+	mux.Group(func(router chi.Router) {
+		router.Use(authorizationMiddleware.OrganizationAdminAndUserAndViewerAuthorization)
+		router.Use(authorizationMiddleware.OrganizationAuthorization)
+
 		router.Get("/report", s.getSocietySalesReport)
 		router.Get("/tower/{towerId}/report", s.getTowerSalesReport)
 

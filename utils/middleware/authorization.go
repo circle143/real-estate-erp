@@ -55,6 +55,19 @@ func (am *AuthorizationMiddleware) OrganizationAdminAndUserAuthorization(next ht
 	})
 }
 
+// OrganizationAdminAndUserAndViewerAuthorization protects organization user routes
+func (am *AuthorizationMiddleware) OrganizationAdminAndUserAndViewerAuthorization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userRole := r.Context().Value(custom.UserRoleKey).(custom.UserRole)
+		if userRole != custom.ORGADMIN && userRole != custom.ORGUSER && userRole != custom.ORGVIEWER {
+			payload.HandleError(w, unauthorizedError)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // OrganizationAuthorization checks organization id for user
 func (am *AuthorizationMiddleware) OrganizationAuthorization(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
