@@ -15,7 +15,7 @@ type customerDetails struct {
 	Gender           string           `json:"gender" validate:"required"`
 	Photo            string           `json:"photo"`
 	MaritalStatus    string           `json:"maritalStatus" validate:"required"`
-	Nationality      string           `json:"nationality" validate:"required"`
+	Nationality      string           `json:"nationality"`
 	Email            string           `json:"email" validate:"required,email"`
 	PhoneNumber      string           `json:"phoneNumber" validate:"required,e164"`
 	MiddleName       string           `json:"middleName"`
