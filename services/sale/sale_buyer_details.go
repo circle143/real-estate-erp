@@ -54,10 +54,10 @@ func (cd *customerDetails) validate() error {
 	}
 
 	// validate nationality
-	nationality := custom.Nationality(cd.Nationality)
-	if !nationality.IsValid() {
-		return invalidError
-	}
+	// nationality := custom.Nationality(cd.Nationality)
+//	if !nationality.IsValid() {
+	//	return invalidError
+//	}
 
 	// validate verification info
 	if strings.TrimSpace(cd.AadharNumber) == "" && strings.TrimSpace(cd.PanNumber) == "" && strings.TrimSpace(cd.PassportNumber) == "" {
