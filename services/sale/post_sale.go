@@ -1,6 +1,8 @@
 package sale
 
 import (
+	"net/http"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/broker"
 	"circledigital.in/real-state-erp/services/flat"
@@ -11,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type optionalChargesDetails struct {
@@ -22,7 +23,7 @@ type optionalChargesDetails struct {
 type hCreateSale struct {
 	Type      string            `validate:"required"`
 	Details   []customerDetails `validate:"omitempty,dive"`
-	BasicCost float64           `validate:"required"`
+	BasicCost string            `validate:"required"`
 	//OptionalCharges []string
 	OtherCharges []optionalChargesDetails `validate:"omitempty,dive"`
 	CompanyBuyer companyCustomerDetails   `validate:"omitempty"`
@@ -74,7 +75,13 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 	if err != nil {
 		return err
 	}
-	basicCost := decimal.NewFromFloat(h.BasicCost)
+	basicCost, err := decimal.NewFromString(h.BasicCost)
+	if err != nil {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Invalid basic cost provided.",
+		}
+	}
 	buyerType := saleBuyerType(h.Type)
 
 	return db.Transaction(func(tx *gorm.DB) error {
@@ -133,10 +140,11 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 
 		// basic cost
 		basicCostDetail := models.PriceBreakdownDetail{
-			Type:      "basic-cost",
-			Price:     basicCost,
-			Summary:   "Basic flat cost",
-			Total:     salableArea.Mul(basicCost),
+			Type:    "basic-cost",
+			Price:   basicCost,
+			Summary: "Basic flat cost",
+			// Total:     salableArea.Mul(basicCost),
+			Total:     basicCost,
 			SuperArea: salableArea,
 		}
 		totalPrice = totalPrice.Add(basicCostDetail.Total)
