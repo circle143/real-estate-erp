@@ -23,7 +23,7 @@ type optionalChargesDetails struct {
 type hCreateSale struct {
 	Type      string            `validate:"required"`
 	Details   []customerDetails `validate:"omitempty,dive"`
-	BasicCost string            `validate:"required"`
+	BasicCost float64           `validate:"required"`
 	//OptionalCharges []string
 	OtherCharges []optionalChargesDetails `validate:"omitempty,dive"`
 	CompanyBuyer companyCustomerDetails   `validate:"omitempty"`
@@ -75,13 +75,13 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 	if err != nil {
 		return err
 	}
-	basicCost, err := decimal.NewFromString(h.BasicCost)
-	if err != nil {
-		return &custom.RequestError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid basic cost provided.",
-		}
-	}
+	basicCost := decimal.NewFromFloat(h.BasicCost)
+	// if err != nil {
+	// 	return &custom.RequestError{
+	// 		Status:  http.StatusBadRequest,
+	// 		Message: "Invalid basic cost provided.",
+	// 	}
+	// }
 	buyerType := saleBuyerType(h.Type)
 
 	return db.Transaction(func(tx *gorm.DB) error {
