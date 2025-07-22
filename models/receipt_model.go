@@ -1,10 +1,11 @@
 package models
 
 import (
+	"time"
+
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 type AmountWithGSTInclusive struct {
@@ -15,7 +16,8 @@ type AmountWithGSTInclusive struct {
 
 type Receipt struct {
 	Id                uuid.UUID          `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	SaleId            uuid.UUID          `gorm:"not null" json:"saleId"`
+	ReceiptNumber     string             `gorm:"not null; uniqueIndex:idx_sale_receipt_number" json:"receiptNumber"`
+	SaleId            uuid.UUID          `gorm:"not null; uniqueIndex:idx_sale_receipt_number" json:"saleId"`
 	Sale              *Sale              `gorm:"foreignKey:SaleId;constraint:OnDelete:CASCADE" json:"sale,omitempty"`
 	TotalAmount       decimal.Decimal    `gorm:"not null;type:numeric" json:"totalAmount"`
 	Mode              custom.ReceiptMode `gorm:"not null" json:"mode"`

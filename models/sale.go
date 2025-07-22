@@ -1,13 +1,15 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 type Sale struct {
 	Id              uuid.UUID             `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	SaleNumber      string                `gorm:"not null;uniqueIndex" json:"saleNumber"`
 	FlatId          uuid.UUID             `gorm:"not null" json:"flatId"`
 	Flat            *Flat                 `gorm:"foreignKey:FlatId" json:"flat,omitempty"`
 	SocietyId       string                `gorm:"not null;index" json:"societyId"`

@@ -21,9 +21,10 @@ type optionalChargesDetails struct {
 }
 
 type hCreateSale struct {
-	Type      string            `validate:"required"`
-	Details   []customerDetails `validate:"omitempty,dive"`
-	BasicCost float64           `validate:"required"`
+	SaleNumber string            `validate:"required"`
+	Type       string            `validate:"required"`
+	Details    []customerDetails `validate:"omitempty,dive"`
+	BasicCost  float64           `validate:"required"`
 	//OptionalCharges []string
 	OtherCharges []optionalChargesDetails `validate:"omitempty,dive"`
 	CompanyBuyer companyCustomerDetails   `validate:"omitempty"`
@@ -234,6 +235,7 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 		//}
 
 		saleModel := models.Sale{
+			SaleNumber:     h.SaleNumber,
 			FlatId:         uuid.MustParse(flatId),
 			SocietyId:      society,
 			OrgId:          uuid.MustParse(orgId),

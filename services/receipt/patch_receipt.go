@@ -1,6 +1,8 @@
 package receipt
 
 import (
+	"net/http"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
@@ -8,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type hMarkReceiptAsFailed struct{}

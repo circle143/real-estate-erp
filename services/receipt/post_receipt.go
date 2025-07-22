@@ -1,6 +1,9 @@
 package receipt
 
 import (
+	"net/http"
+	"strings"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/bank"
 	"circledigital.in/real-state-erp/services/sale"
@@ -11,11 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"net/http"
-	"strings"
 )
 
+// TODO: later handle automatic generation for receipt number
 type hCreateSaleReceipt struct {
+	ReceiptNumber     string          `validate:"required"`
 	TotalAmount       float64         `validate:"required"`
 	Mode              string          `validate:"required"`
 	DateIssued        custom.DateOnly `validate:"required"`
@@ -53,6 +56,7 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 	}
 
 	receiptModel := models.Receipt{
+		ReceiptNumber:     h.ReceiptNumber,
 		SaleId:            uuid.MustParse(saleId),
 		TotalAmount:       decimal.NewFromFloat(h.TotalAmount),
 		TransactionNumber: h.TransactionNumber,
