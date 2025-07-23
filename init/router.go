@@ -1,15 +1,18 @@
 package init
 
 import (
+	"net/http"
+
 	"circledigital.in/real-state-erp/services/bank"
 	"circledigital.in/real-state-erp/services/broker"
 	"circledigital.in/real-state-erp/services/flat"
 	"circledigital.in/real-state-erp/services/organization"
-	paymentPlan "circledigital.in/real-state-erp/services/payment-plan"
 	"circledigital.in/real-state-erp/services/receipt"
 	"circledigital.in/real-state-erp/services/sale"
 	"circledigital.in/real-state-erp/services/society"
 	"circledigital.in/real-state-erp/services/tower"
+
+	paymentPlanGroup "circledigital.in/real-state-erp/services/payment-plan-group"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	appMiddleware "circledigital.in/real-state-erp/utils/middleware"
@@ -17,7 +20,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"net/http"
 )
 
 // serviceFactory defines type for getting a service
@@ -31,7 +33,7 @@ var services = []serviceFactory{
 	flat.CreateFlatService,
 	sale.CreateSaleService,
 	//charges.CreateChargesService,
-	paymentPlan.CreatePaymentPlanService,
+	paymentPlanGroup.CreatePaymentPlanService,
 	broker.CreateBrokerService,
 	bank.CreateBankService,
 	receipt.CreateReceiptService,

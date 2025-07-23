@@ -16,6 +16,7 @@ type Nationality string
 type PreferenceLocationChargesType string
 type PriceChargeType string
 type PaymentPlanScope string
+type PaymentPlanItemScope string
 type PaymentPlanCondition string
 type ReceiptMode string
 
@@ -195,14 +196,30 @@ func (r PaymentPlanScope) IsValid() bool {
 }
 
 const (
-	ONBOOKING    PaymentPlanCondition = "On-Booking"
-	AFTERDAYS    PaymentPlanCondition = "After-Days"
-	ONTOWERSTAGE PaymentPlanCondition = "On-Tower-Stage"
+	ONBOOKING    PaymentPlanCondition = "on-booking"
+	WITHINDAYS   PaymentPlanCondition = "within-days"
+	ONTOWERSTAGE PaymentPlanCondition = "on-tower-stage"
+	ONFlatSTAGE  PaymentPlanCondition = "on-flat-stage"
 )
 
 func (r PaymentPlanCondition) IsValid() bool {
 	switch r {
-	case ONBOOKING, AFTERDAYS, ONTOWERSTAGE:
+	case ONBOOKING, WITHINDAYS, ONTOWERSTAGE, ONFlatSTAGE:
+		return true
+	default:
+		return false
+	}
+}
+
+const (
+	SCOPE_SALE  PaymentPlanItemScope = "sale"
+	SCOPE_TOWER PaymentPlanItemScope = "tower"
+	SCOPE_FLAT  PaymentPlanItemScope = "flat"
+)
+
+func (r PaymentPlanItemScope) IsValid() bool {
+	switch r {
+	case SCOPE_FLAT, SCOPE_TOWER, SCOPE_SALE:
 		return true
 	default:
 		return false

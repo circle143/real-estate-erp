@@ -1,9 +1,10 @@
 package migration
 
 import (
+	"log"
+
 	"circledigital.in/real-state-erp/models"
 	"gorm.io/gorm"
-	"log"
 )
 
 func Migrate(db *gorm.DB) {
@@ -19,7 +20,10 @@ func Migrate(db *gorm.DB) {
 		&models.PreferenceLocationCharge{},
 		&models.OtherCharge{},
 		&models.Sale{},
-		&models.PaymentPlan{},
+		// &models.PaymentPlan{},
+		&models.PaymentPlanGroup{},
+		&models.PaymentPlanRatio{},
+		&models.PaymentPlanRatioItem{},
 		&models.TowerPaymentStatus{},
 		&models.CompanyCustomer{},
 		&models.Broker{},

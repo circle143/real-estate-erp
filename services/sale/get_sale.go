@@ -1,6 +1,8 @@
 package sale
 
 import (
+	"net/http"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
@@ -10,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 func decimalPtr(d decimal.Decimal) *decimal.Decimal {
@@ -50,7 +51,7 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 
 	for i := range directPlans {
 		plan := &directPlans[i]
-		if plan.ConditionType == custom.AFTERDAYS {
+		if plan.ConditionType == custom.WITHINDAYS {
 			due := plan.CreatedAt.AddDate(0, 0, plan.ConditionValue)
 			plan.Due = &due
 		}

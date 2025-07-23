@@ -1,6 +1,8 @@
 package payment_plan
 
 import (
+	"net/http"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/tower"
 	"circledigital.in/real-state-erp/utils/common"
@@ -9,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"net/http"
 )
 
 type hCreatePaymentPlan struct {
@@ -37,7 +38,7 @@ func (h *hCreatePaymentPlan) validate(db *gorm.DB, orgId, society string) error 
 		}
 	}
 
-	if conditionType == custom.AFTERDAYS && h.ConditionValue <= 0 {
+	if conditionType == custom.WITHINDAYS && h.ConditionValue <= 0 {
 		return &custom.RequestError{
 			Status:  http.StatusBadRequest,
 			Message: "Invalid condition value for payment plan.",
