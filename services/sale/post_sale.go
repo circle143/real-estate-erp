@@ -6,6 +6,7 @@ import (
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/broker"
 	"circledigital.in/real-state-erp/services/flat"
+	payment_plan_group "circledigital.in/real-state-erp/services/payment-plan-group"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
@@ -25,13 +26,14 @@ type hCreateSale struct {
 	Type       string            `validate:"required"`
 	Details    []customerDetails `validate:"omitempty,dive"`
 	BasicCost  float64           `validate:"required"`
+	PaymentId  string            `validate:"required,uuid"`
 	//OptionalCharges []string
 	OtherCharges []optionalChargesDetails `validate:"omitempty,dive"`
 	CompanyBuyer companyCustomerDetails   `validate:"omitempty"`
 	BrokerId     string                   `validate:"required,uuid"`
 }
 
-func (h *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error {
+func (h *hCreateSale) validate(db *gorm.DB, orgId, society, flatId, paymentId string) error {
 	// check type and validate
 	buyerType := saleBuyerType(h.Type)
 	if !buyerType.IsValid() {
@@ -67,12 +69,18 @@ func (h *hCreateSale) validate(db *gorm.DB, orgId, society, flatId string) error
 		return err
 	}
 
+	paymentInfoService := payment_plan_group.CreatePaymentPlanSocietyInfoService(db, uuid.MustParse(paymentId))
+	err = common.IsSameSociety(paymentInfoService, orgId, society)
+	if err != nil {
+		return err
+	}
+
 	brokerSocietyInfoService := broker.CreateBrokerSocietyInfoService(db, uuid.MustParse(h.BrokerId))
 	return common.IsSameSociety(brokerSocietyInfoService, orgId, society)
 }
 
 func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error {
-	err := h.validate(db, orgId, society, flatId)
+	err := h.validate(db, orgId, society, flatId, h.PaymentId)
 	if err != nil {
 		return err
 	}
@@ -235,13 +243,14 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 		//}
 
 		saleModel := models.Sale{
-			SaleNumber:     h.SaleNumber,
-			FlatId:         uuid.MustParse(flatId),
-			SocietyId:      society,
-			OrgId:          uuid.MustParse(orgId),
-			TotalPrice:     totalPrice,
-			PriceBreakdown: priceBreakdowns,
-			BrokerId:       uuid.MustParse(h.BrokerId),
+			SaleNumber:         h.SaleNumber,
+			FlatId:             uuid.MustParse(flatId),
+			SocietyId:          society,
+			OrgId:              uuid.MustParse(orgId),
+			TotalPrice:         totalPrice,
+			PriceBreakdown:     priceBreakdowns,
+			BrokerId:           uuid.MustParse(h.BrokerId),
+			PaymentPlanGroupId: uuid.MustParse(h.PaymentId),
 		}
 		err = tx.Create(&saleModel).Error
 		if err != nil {
