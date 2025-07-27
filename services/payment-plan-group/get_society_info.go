@@ -22,7 +22,10 @@ func (s *paymentPlanSocietyInfoService) GetSocietyInfo() (*common.SocietyInfo, e
 		Id: s.paymentId,
 	}
 
-	err := s.db.First(&paymentPlan).Preload("PaymentPlanGroup").Error
+	err := s.db.
+		Preload("PaymentPlanGroup").
+		First(&paymentPlan).
+		Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, &custom.RequestError{
