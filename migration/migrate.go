@@ -25,6 +25,7 @@ func Migrate(db *gorm.DB) {
 		&models.PaymentPlanRatio{},
 		&models.PaymentPlanRatioItem{},
 		&models.TowerPaymentStatus{},
+		&models.FlatPaymentStatus{},
 		&models.CompanyCustomer{},
 		&models.Broker{},
 		&models.Bank{},

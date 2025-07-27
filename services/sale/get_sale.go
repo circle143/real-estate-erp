@@ -40,41 +40,41 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 	}
 
 	// direct payment plans
-	var directPlans []models.PaymentPlan
-	err = db.
-		Model(&models.PaymentPlan{}).
-		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
-		Find(&directPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	for i := range directPlans {
-		plan := &directPlans[i]
-		if plan.ConditionType == custom.WITHINDAYS {
-			due := plan.CreatedAt.AddDate(0, 0, plan.ConditionValue)
-			plan.Due = &due
-		}
-	}
-
-	// tower active payment plans
-	var paymentPlans []models.PaymentPlan
-	err = db.
-		Model(&models.PaymentPlan{}).
-		Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
-		Joins("JOIN towers ON towers.id = tps.tower_id").
-		Joins("JOIN flats ON flats.tower_id = towers.id").
-		Joins("JOIN sales ON sales.flat_id = flats.id").
-		Where("sales.id = ?", saleId).
-		Select("payment_plans.*").
-		Scan(&paymentPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	paymentPlans = append(directPlans, paymentPlans...)
-	paymentPlans = common.SortDbModels(paymentPlans)
-
+	// var directPlans []models.PaymentPlan
+	// err = db.
+	// 	Model(&models.PaymentPlan{}).
+	// 	Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
+	// 	Find(&directPlans).Error
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// for i := range directPlans {
+	// 	plan := &directPlans[i]
+	// 	if plan.ConditionType == custom.WITHINDAYS {
+	// 		due := plan.CreatedAt.AddDate(0, 0, plan.ConditionValue)
+	// 		plan.Due = &due
+	// 	}
+	// }
+	//
+	// // tower active payment plans
+	// var paymentPlans []models.PaymentPlan
+	// err = db.
+	// 	Model(&models.PaymentPlan{}).
+	// 	Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
+	// 	Joins("JOIN towers ON towers.id = tps.tower_id").
+	// 	Joins("JOIN flats ON flats.tower_id = towers.id").
+	// 	Joins("JOIN sales ON sales.flat_id = flats.id").
+	// 	Where("sales.id = ?", saleId).
+	// 	Select("payment_plans.*").
+	// 	Scan(&paymentPlans).Error
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// paymentPlans = append(directPlans, paymentPlans...)
+	// paymentPlans = common.SortDbModels(paymentPlans)
+	//
 	// total amount paid
 	var totalPaid decimal.Decimal
 	err = db.Table("receipts AS r").
@@ -87,38 +87,38 @@ func (h *hGetSalePaymentBreakDown) execute(db *gorm.DB, orgId, society, saleId s
 		return nil, err
 	}
 
-	totalPaidCpy := totalPaid
+	// totalPaidCpy := totalPaid
 	// total amount according to active payment plans
 	var total = decimal.Zero
-	for i, plan := range paymentPlans {
-		percent := decimal.NewFromInt(int64(plan.Amount)) // Convert int to decimal
-		amount := sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
-
-		paymentPlans[i].TotalAmount = &amount
-		total = total.Add(amount)
-
-		// Distribute totalPaidCpy
-		if totalPaidCpy.GreaterThanOrEqual(amount) {
-			paymentPlans[i].AmountPaid = &amount
-			paymentPlans[i].Remaining = decimalPtr(decimal.Zero)
-			totalPaidCpy = totalPaidCpy.Sub(amount)
-		} else if totalPaidCpy.GreaterThan(decimal.Zero) {
-			amountPaid := totalPaidCpy
-			paymentPlans[i].AmountPaid = &amountPaid
-			remaining := amount.Sub(totalPaidCpy)
-			paymentPlans[i].Remaining = decimalPtr(remaining)
-			totalPaidCpy = decimal.Zero
-		} else {
-			paymentPlans[i].AmountPaid = decimalPtr(decimal.Zero)
-			paymentPlans[i].Remaining = decimalPtr(amount)
-		}
-	}
-
+	// for i, plan := range paymentPlans {
+	// 	percent := decimal.NewFromInt(int64(plan.Amount)) // Convert int to decimal
+	// 	amount := sale.TotalPrice.Mul(percent).Div(decimal.NewFromInt(100))
+	//
+	// 	paymentPlans[i].TotalAmount = &amount
+	// 	total = total.Add(amount)
+	//
+	// 	// Distribute totalPaidCpy
+	// 	if totalPaidCpy.GreaterThanOrEqual(amount) {
+	// 		paymentPlans[i].AmountPaid = &amount
+	// 		paymentPlans[i].Remaining = decimalPtr(decimal.Zero)
+	// 		totalPaidCpy = totalPaidCpy.Sub(amount)
+	// 	} else if totalPaidCpy.GreaterThan(decimal.Zero) {
+	// 		amountPaid := totalPaidCpy
+	// 		paymentPlans[i].AmountPaid = &amountPaid
+	// 		remaining := amount.Sub(totalPaidCpy)
+	// 		paymentPlans[i].Remaining = decimalPtr(remaining)
+	// 		totalPaidCpy = decimal.Zero
+	// 	} else {
+	// 		paymentPlans[i].AmountPaid = decimalPtr(decimal.Zero)
+	// 		paymentPlans[i].Remaining = decimalPtr(amount)
+	// 	}
+	// }
+	//
 	return &models.PaymentPlanSaleBreakDown{
 		TotalAmount: total,
 		PaidAmount:  totalPaid,
 		Remaining:   total.Sub(totalPaid),
-		Details:     paymentPlans,
+		// Details:     paymentPlans,
 	}, nil
 }
 
@@ -254,101 +254,101 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 	}
 
 	// 4 -> get all direct plans
-	var directPlans []models.PaymentPlan
-	err = db.
-		Model(&models.PaymentPlan{}).
-		Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
-		Find(&directPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// 5 -> get all tower active payment plans
-	var paymentPlans []models.PaymentPlan
-	err = db.
-		Model(&models.PaymentPlan{}).
-		Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
-		Where("tps.tower_id = ?", towerId).
-		Select("payment_plans.*").
-		Scan(&paymentPlans).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// all payment plans combined and // sort them
-	paymentPlans = append(directPlans, paymentPlans...)
-	paymentPlans = common.SortDbModels(paymentPlans)
+	// var directPlans []models.PaymentPlan
+	// err = db.
+	// 	Model(&models.PaymentPlan{}).
+	// 	Where("org_id = ? and society_id = ? and scope = ?", orgId, society, custom.DIRECT).
+	// 	Find(&directPlans).Error
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// // 5 -> get all tower active payment plans
+	// var paymentPlans []models.PaymentPlan
+	// err = db.
+	// 	Model(&models.PaymentPlan{}).
+	// 	Joins("JOIN tower_payment_statuses tps ON tps.payment_id = payment_plans.id").
+	// 	Where("tps.tower_id = ?", towerId).
+	// 	Select("payment_plans.*").
+	// 	Scan(&paymentPlans).Error
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// // all payment plans combined and // sort them
+	// paymentPlans = append(directPlans, paymentPlans...)
+	// paymentPlans = common.SortDbModels(paymentPlans)
 
 	// create tower payment breakdown
-	var towerReportPaymentBreakdown []models.TowerReportPaymentBreakdown
-	for _, plan := range paymentPlans {
-		totalPlanAmount := decimal.Zero
-		totalPlanPaid := decimal.Zero
-
-		percent := decimal.NewFromInt(int64(plan.Amount)).Div(decimal.NewFromInt(100))
-
-		var paidItems []models.TowerReportPaymentBreakdownItem
-		var unpaidItems []models.TowerReportPaymentBreakdownItem
-
-		for _, flat := range soldFlats {
-			flatId := flat.Id
-			flatPaidRem := flatsMap[flatId].paid
-			isPaid := false
-
-			flatTotalPaymentPlan := flatsMap[flatId].total.Mul(percent)
-			flatPaid := decimal.Zero
-			flatRemaining := decimal.Zero
-
-			if flatPaidRem.GreaterThanOrEqual(flatTotalPaymentPlan) {
-				isPaid = true
-
-				flatPaid = flatTotalPaymentPlan
-				flatPaidRem = flatPaidRem.Sub(flatTotalPaymentPlan)
-			} else if flatPaidRem.GreaterThan(decimal.Zero) {
-				flatPaid = flatPaidRem
-				flatPaidRem = decimal.Zero
-				flatRemaining = flatTotalPaymentPlan.Sub(flatPaid)
-			} else {
-				flatRemaining = flatTotalPaymentPlan
-			}
-
-			totalPlanAmount = totalPlanAmount.Add(flatTotalPaymentPlan)
-			totalPlanPaid = totalPlanPaid.Add(flatPaid)
-
-			// update flat
-			flat := flatsMap[flatId]
-			flat.paid = flatPaidRem
-			flatsMap[flatId] = flat
-
-			// create payment plan item
-			paymentPlanItem := models.TowerReportPaymentBreakdownItem{
-				FlatId:    flatId,
-				Total:     flatTotalPaymentPlan,
-				Paid:      flatPaid,
-				Remaining: flatRemaining,
-			}
-
-			// add to correct slice
-			if isPaid {
-				paidItems = append(paidItems, paymentPlanItem)
-			} else {
-				unpaidItems = append(unpaidItems, paymentPlanItem)
-			}
-		}
-
-		totalAmountTowerPaymentPlan = totalAmountTowerPaymentPlan.Add(totalPlanAmount)
-		totalTowerPaid = totalTowerPaid.Add(totalPlanPaid)
-
-		towerPaymentPlanItem := models.TowerReportPaymentBreakdown{
-			PaymentPlan: plan,
-			Total:       totalPlanAmount,
-			Paid:        totalPlanPaid,
-			Remaining:   totalPlanAmount.Sub(totalPlanPaid),
-			PaidItems:   paidItems,
-			UnpaidItems: unpaidItems,
-		}
-		towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, towerPaymentPlanItem)
-	}
+	// var towerReportPaymentBreakdown []models.TowerReportPaymentBreakdown
+	// for _, plan := range paymentPlans {
+	// 	totalPlanAmount := decimal.Zero
+	// 	totalPlanPaid := decimal.Zero
+	//
+	// 	percent := decimal.NewFromInt(int64(plan.Amount)).Div(decimal.NewFromInt(100))
+	//
+	// 	var paidItems []models.TowerReportPaymentBreakdownItem
+	// 	var unpaidItems []models.TowerReportPaymentBreakdownItem
+	//
+	// 	for _, flat := range soldFlats {
+	// 		flatId := flat.Id
+	// 		flatPaidRem := flatsMap[flatId].paid
+	// 		isPaid := false
+	//
+	// 		flatTotalPaymentPlan := flatsMap[flatId].total.Mul(percent)
+	// 		flatPaid := decimal.Zero
+	// 		flatRemaining := decimal.Zero
+	//
+	// 		if flatPaidRem.GreaterThanOrEqual(flatTotalPaymentPlan) {
+	// 			isPaid = true
+	//
+	// 			flatPaid = flatTotalPaymentPlan
+	// 			flatPaidRem = flatPaidRem.Sub(flatTotalPaymentPlan)
+	// 		} else if flatPaidRem.GreaterThan(decimal.Zero) {
+	// 			flatPaid = flatPaidRem
+	// 			flatPaidRem = decimal.Zero
+	// 			flatRemaining = flatTotalPaymentPlan.Sub(flatPaid)
+	// 		} else {
+	// 			flatRemaining = flatTotalPaymentPlan
+	// 		}
+	//
+	// 		totalPlanAmount = totalPlanAmount.Add(flatTotalPaymentPlan)
+	// 		totalPlanPaid = totalPlanPaid.Add(flatPaid)
+	//
+	// 		// update flat
+	// 		flat := flatsMap[flatId]
+	// 		flat.paid = flatPaidRem
+	// 		flatsMap[flatId] = flat
+	//
+	// 		// create payment plan item
+	// 		paymentPlanItem := models.TowerReportPaymentBreakdownItem{
+	// 			FlatId:    flatId,
+	// 			Total:     flatTotalPaymentPlan,
+	// 			Paid:      flatPaid,
+	// 			Remaining: flatRemaining,
+	// 		}
+	//
+	// 		// add to correct slice
+	// 		if isPaid {
+	// 			paidItems = append(paidItems, paymentPlanItem)
+	// 		} else {
+	// 			unpaidItems = append(unpaidItems, paymentPlanItem)
+	// 		}
+	// 	}
+	//
+	// 	totalAmountTowerPaymentPlan = totalAmountTowerPaymentPlan.Add(totalPlanAmount)
+	// 	totalTowerPaid = totalTowerPaid.Add(totalPlanPaid)
+	//
+	// 	towerPaymentPlanItem := models.TowerReportPaymentBreakdown{
+	// 		PaymentPlan: plan,
+	// 		Total:       totalPlanAmount,
+	// 		Paid:        totalPlanPaid,
+	// 		Remaining:   totalPlanAmount.Sub(totalPlanPaid),
+	// 		PaidItems:   paidItems,
+	// 		UnpaidItems: unpaidItems,
+	// 	}
+	// 	towerReportPaymentBreakdown = append(towerReportPaymentBreakdown, towerPaymentPlanItem)
+	// }
 
 	return &models.TowerReport{
 		Flats: soldFlats,
@@ -362,7 +362,7 @@ func (h *hGetTowerSalesReport) execute(db *gorm.DB, orgId, society, towerId stri
 			Paid:      totalTowerPaid,
 			Remaining: totalAmountTowerPaymentPlan.Sub(totalTowerPaid),
 		},
-		PaymentBreakdown: towerReportPaymentBreakdown,
+		// PaymentBreakdown: towerReportPaymentBreakdown,
 	}, nil
 }
 

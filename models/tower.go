@@ -1,9 +1,10 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 // Tower model
@@ -44,7 +45,7 @@ type TowerReportPaymentBreakdownItem struct {
 }
 
 type TowerReportPaymentBreakdown struct {
-	PaymentPlan
+	// PaymentPlan
 	Total       decimal.Decimal                   `json:"total"`
 	Paid        decimal.Decimal                   `json:"paid"`
 	Remaining   decimal.Decimal                   `json:"remaining"`

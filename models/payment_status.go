@@ -1,9 +1,10 @@
 package models
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"time"
 )
 
 type PaymentReport struct {
@@ -13,11 +14,19 @@ type PaymentReport struct {
 }
 
 type TowerPaymentStatus struct {
-	PaymentId   uuid.UUID    `gorm:"primaryKey" json:"paymentId"`
-	TowerId     uuid.UUID    `gorm:"primaryKey" json:"towerId"`
-	PaymentPlan *PaymentPlan `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
-	Tower       *Tower       `gorm:"foreignKey:TowerId;not null" json:"tower,omitempty"`
-	CreatedAt   time.Time    `gorm:"autoCreateTime" json:"createdAt"`
+	PaymentId   uuid.UUID         `gorm:"primaryKey" json:"paymentId"`
+	TowerId     uuid.UUID         `gorm:"primaryKey" json:"towerId"`
+	PaymentPlan *PaymentPlanGroup `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
+	Tower       *Tower            `gorm:"foreignKey:TowerId;not null" json:"tower,omitempty"`
+	CreatedAt   time.Time         `gorm:"autoCreateTime" json:"createdAt"`
+}
+
+type FlatPaymentStatus struct {
+	PaymentId   uuid.UUID         `gorm:"primaryKey" json:"paymentId"`
+	FlatId      uuid.UUID         `gorm:"primaryKey" json:"flatId"`
+	PaymentPlan *PaymentPlanGroup `gorm:"foreignKey:PaymentId;not null" json:"paymentPlan,omitempty"`
+	Flat        *Flat             `gorm:"foreignKey:FlatId;not null" json:"flat,omitempty"`
+	CreatedAt   time.Time         `gorm:"autoCreateTime" json:"createdAt"`
 }
 
 //type SalePaymentStatus struct {
