@@ -250,7 +250,7 @@ func (h *hCreateSale) execute(db *gorm.DB, orgId, society, flatId string) error 
 			TotalPrice:         totalPrice,
 			PriceBreakdown:     priceBreakdowns,
 			BrokerId:           uuid.MustParse(h.BrokerId),
-			PaymentPlanGroupId: uuid.MustParse(h.PaymentId),
+			PaymentPlanRatioId: uuid.MustParse(h.PaymentId),
 		}
 		err = tx.Create(&saleModel).Error
 		if err != nil {
