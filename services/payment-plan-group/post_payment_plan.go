@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	"circledigital.in/real-state-erp/models"
@@ -43,12 +44,21 @@ func (h *hCreatePaymentPlan) validate() error {
 				}
 			}
 
+			if !slices.Contains(custom.ValidPaymentPlanScopeCondtion[scope], conditionType) {
+				return &custom.RequestError{
+					Status:  http.StatusBadRequest,
+					Message: "Invalid condition-type value for payment plan scope.",
+				}
+
+			}
+
 			if conditionType == custom.WITHINDAYS && item.ConditionValue <= 0 {
 				return &custom.RequestError{
 					Status:  http.StatusBadRequest,
 					Message: "Invalid condition value for payment plan item.",
 				}
 			}
+
 		}
 
 		if !val.Equal(decimal.NewFromInt(100)) {

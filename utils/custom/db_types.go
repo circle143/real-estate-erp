@@ -198,13 +198,14 @@ func (r PaymentPlanScope) IsValid() bool {
 const (
 	ONBOOKING    PaymentPlanCondition = "on-booking"
 	WITHINDAYS   PaymentPlanCondition = "within-days"
+	ONALLOTMENT  PaymentPlanCondition = "on-allotment"
 	ONTOWERSTAGE PaymentPlanCondition = "on-tower-stage"
 	ONFlatSTAGE  PaymentPlanCondition = "on-flat-stage"
 )
 
 func (r PaymentPlanCondition) IsValid() bool {
 	switch r {
-	case ONBOOKING, WITHINDAYS, ONTOWERSTAGE, ONFlatSTAGE:
+	case ONBOOKING, WITHINDAYS, ONTOWERSTAGE, ONFlatSTAGE, ONALLOTMENT:
 		return true
 	default:
 		return false
@@ -224,4 +225,16 @@ func (r PaymentPlanItemScope) IsValid() bool {
 	default:
 		return false
 	}
+}
+
+var ValidPaymentPlanScopeCondtion = map[PaymentPlanItemScope][]PaymentPlanCondition{
+	SCOPE_SALE: {
+		ONBOOKING, WITHINDAYS, ONALLOTMENT,
+	},
+	SCOPE_TOWER: {
+		ONTOWERSTAGE,
+	},
+	SCOPE_FLAT: {
+		ONFlatSTAGE,
+	},
 }
