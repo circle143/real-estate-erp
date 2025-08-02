@@ -24,9 +24,18 @@ type hCreateSaleReceipt struct {
 	DateIssued        custom.DateOnly `validate:"required"`
 	BankName          string
 	TransactionNumber string
+	GstRate           int
 }
 
 func (h *hCreateSaleReceipt) validate(db *gorm.DB, orgId, society, saleId string) error {
+	if h.GstRate != 5 && h.GstRate != 1 {
+		h.GstRate = 5
+		// return &custom.RequestError{
+		// 	Status:  http.StatusBadRequest,
+		// 	Message: "Invalid gst rate. Rate should be either 1 or 5.",
+		// }
+	}
+
 	mode := custom.ReceiptMode(h.Mode)
 	if !mode.IsValid() {
 		return &custom.RequestError{
@@ -65,7 +74,7 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 		DateIssued:        h.DateIssued,
 	}
 
-	gstInfo := receiptModel.CalcGST()
+	gstInfo := receiptModel.CalcGST(h.GstRate)
 	receiptModel.Amount = gstInfo.Amount
 	receiptModel.SGST = gstInfo.SGST
 	receiptModel.CGST = gstInfo.CGST

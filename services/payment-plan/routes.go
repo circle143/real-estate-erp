@@ -17,10 +17,10 @@ func (s *paymentPlanService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAdminAndUserAuthorization)
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
-		router.Post("/", s.createPaymentPlan)
-		router.Post("/{paymentId}/tower/{towerId}", s.markPaymentPlanActiveForTower)
-		router.Get("/", s.getSocietyPaymentPlans)
-		router.Get("/tower/{towerId}", s.getTowerPaymentPlans)
+		// router.Post("/", s.createPaymentPlan)
+		// router.Post("/{paymentId}/tower/{towerId}", s.markPaymentPlanActiveForTower)
+		// router.Get("/", s.getSocietyPaymentPlans)
+		// router.Get("/tower/{towerId}", s.getTowerPaymentPlans)
 	})
 
 	return mux

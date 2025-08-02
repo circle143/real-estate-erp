@@ -36,16 +36,33 @@ func (r Receipt) GetCreatedAt() time.Time {
 	return r.CreatedAt
 }
 
-func (r Receipt) CalcGST() *AmountWithGSTInclusive {
-	amount := r.TotalAmount.Div(decimal.NewFromFloat(1.05)).Round(2)
-	gstAmount := r.TotalAmount.Sub(amount)
+func calcGST(totalAmount decimal.Decimal, rate int) *AmountWithGSTInclusive {
+	decimalHundred := decimal.NewFromInt(100)
+	decimalRate := decimal.NewFromInt(int64(rate))
+	gstAmount := totalAmount.Sub(totalAmount.Mul(decimalHundred.Div(decimalHundred.Add(decimalRate)))).Round(2)
 
 	cgst := gstAmount.Div(decimal.NewFromInt(2))
 	return &AmountWithGSTInclusive{
-		Amount: amount,
+		Amount: totalAmount.Sub(gstAmount),
 		CGST:   cgst,
 		SGST:   cgst,
 	}
+}
+
+func (r Receipt) CalcGST(rate int) *AmountWithGSTInclusive {
+	return calcGST(r.TotalAmount, rate)
+	// amount := r.TotalAmount.Div(decimal.NewFromFloat(1.05)).Round(2)
+	// gstAmount := r.TotalAmount.Sub(amount)
+	// decimalHundred := decimal.NewFromInt(100)
+	// decimalRate := decimal.NewFromInt(int64(rate))
+	// gstAmount := r.TotalAmount.Sub(r.TotalAmount.Mul(decimalHundred.Div(decimalHundred.Add(decimalRate))))
+	//
+	// cgst := gstAmount.Div(decimal.NewFromInt(2))
+	// return &AmountWithGSTInclusive{
+	// 	Amount: r.TotalAmount.Sub(gstAmount),
+	// 	CGST:   cgst,
+	// 	SGST:   cgst,
+	// }
 }
 
 type ReceiptClear struct {
