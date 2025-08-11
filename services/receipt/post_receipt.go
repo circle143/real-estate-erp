@@ -12,16 +12,17 @@ import (
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
 // TODO: later handle automatic generation for receipt number
 type hCreateSaleReceipt struct {
-	ReceiptNumber     string          `validate:"required"`
-	TotalAmount       float64         `validate:"required"`
-	Mode              string          `validate:"required"`
-	DateIssued        custom.DateOnly `validate:"required"`
+	ReceiptNumber     string      `validate:"required"`
+	TotalAmount       float64     `validate:"required"`
+	Mode              string      `validate:"required"`
+	DateIssued        pgtype.Date `validate:"required"`
 	BankName          string
 	TransactionNumber string
 	GstRate           int

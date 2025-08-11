@@ -5,6 +5,7 @@ import (
 
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shopspring/decimal"
 )
 
@@ -21,7 +22,7 @@ type Receipt struct {
 	Sale              *Sale              `gorm:"foreignKey:SaleId;constraint:OnDelete:CASCADE" json:"sale,omitempty"`
 	TotalAmount       decimal.Decimal    `gorm:"not null;type:numeric" json:"totalAmount"`
 	Mode              custom.ReceiptMode `gorm:"not null" json:"mode"`
-	DateIssued        custom.DateOnly    `gorm:"not null" json:"dateIssued"`
+	DateIssued        pgtype.Date        `gorm:"not null" json:"dateIssued"`
 	BankName          string             `json:"bankName"`
 	TransactionNumber string             `json:"transactionNumber"`
 	Failed            bool               `gorm:"not null;default:false" json:"failed"`
