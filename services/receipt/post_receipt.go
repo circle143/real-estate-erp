@@ -76,8 +76,8 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 
 	gstInfo := receiptModel.CalcGST(h.GstRate)
 	receiptModel.Amount = gstInfo.Amount
-	receiptModel.SGST = gstInfo.SGST
-	receiptModel.CGST = gstInfo.CGST
+	receiptModel.SGST = &gstInfo.SGST
+	receiptModel.CGST = &gstInfo.CGST
 
 	err = db.Create(&receiptModel).Error
 	return &receiptModel, err

@@ -26,8 +26,8 @@ type Receipt struct {
 	TransactionNumber string             `json:"transactionNumber"`
 	Failed            bool               `gorm:"not null;default:false" json:"failed"`
 	Amount            decimal.Decimal    `gorm:"not null;type:numeric" json:"amount"`
-	CGST              decimal.Decimal    `gorm:"not null;type:numeric" json:"cgst"`
-	SGST              decimal.Decimal    `gorm:"not null;type:numeric" json:"sgst"`
+	CGST              *decimal.Decimal   `gorm:"type:numeric" json:"cgst,omitempty"`
+	SGST              *decimal.Decimal   `gorm:"type:numeric" json:"sgst,omitempty"`
 	Cleared           *ReceiptClear      `gorm:"foreignKey:ReceiptId;constraint:OnDelete:CASCADE" json:"cleared,omitempty"`
 	CreatedAt         time.Time          `gorm:"autoCreateTime" json:"createdAt"`
 }
