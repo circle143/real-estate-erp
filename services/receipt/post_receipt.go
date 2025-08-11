@@ -61,6 +61,13 @@ func (h *hCreateSaleReceipt) validate(db *gorm.DB, orgId, society, saleId string
 		}
 	}
 
+	if mode != custom.ADJUSTMENT && h.TotalAmount < 0 {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Negative receipt amount are only allowed for Adjustment.",
+		}
+	}
+
 	if mode.RequireBankDetails() {
 		// check details
 		if strings.TrimSpace(h.BankName) == "" || strings.TrimSpace(h.TransactionNumber) == "" {
