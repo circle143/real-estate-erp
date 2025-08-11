@@ -3,6 +3,7 @@ package receipt
 import (
 	"net/http"
 	"strings"
+	"time"
 
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/services/bank"
@@ -17,6 +18,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var gstDate = time.Date(2017, time.July, 1, 0, 0, 0, 0, time.UTC)
+
 // TODO: later handle automatic generation for receipt number
 type hCreateSaleReceipt struct {
 	ReceiptNumber     string      `validate:"required"`
@@ -26,6 +29,9 @@ type hCreateSaleReceipt struct {
 	BankName          string
 	TransactionNumber string
 	GstRate           int
+	ServiceTax        float64
+	SwatchBharatCess  float64
+	KrishiKalyanCess  float64
 }
 
 func (h *hCreateSaleReceipt) validate(db *gorm.DB, orgId, society, saleId string) error {
@@ -35,6 +41,16 @@ func (h *hCreateSaleReceipt) validate(db *gorm.DB, orgId, society, saleId string
 		// 	Status:  http.StatusBadRequest,
 		// 	Message: "Invalid gst rate. Rate should be either 1 or 5.",
 		// }
+	}
+
+	if h.DateIssued.Time.Before(gstDate) {
+		h.GstRate = 0
+		if h.ServiceTax == 0 && h.SwatchBharatCess == 0 && h.KrishiKalyanCess == 0 {
+			return &custom.RequestError{
+				Status:  http.StatusBadRequest,
+				Message: "Required missing values for 'serviceTax', 'swatchBharatCess' or 'krishiKalyanCess' for entries before 1 July 2017.",
+			}
+		}
 	}
 
 	mode := custom.ReceiptMode(h.Mode)
@@ -75,10 +91,32 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 		DateIssued:        h.DateIssued,
 	}
 
-	gstInfo := receiptModel.CalcGST(h.GstRate)
-	receiptModel.Amount = gstInfo.Amount
-	receiptModel.SGST = &gstInfo.SGST
-	receiptModel.CGST = &gstInfo.CGST
+	mode := custom.ReceiptMode(h.Mode)
+	if mode != custom.ADJUSTMENT && !h.DateIssued.Time.Before(gstDate) {
+
+		gstInfo := receiptModel.CalcGST(h.GstRate)
+		receiptModel.Amount = gstInfo.Amount
+		receiptModel.SGST = &gstInfo.SGST
+		receiptModel.CGST = &gstInfo.CGST
+	}
+
+	if h.ServiceTax > 0 {
+		tax := decimal.NewFromFloat(h.ServiceTax)
+		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+		receiptModel.ServiceTax = &tax
+	}
+
+	if h.SwatchBharatCess > 0 {
+		tax := decimal.NewFromFloat(h.SwatchBharatCess)
+		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+		receiptModel.SwathchBharatCess = &tax
+	}
+
+	if h.KrishiKalyanCess > 0 {
+		tax := decimal.NewFromFloat(h.KrishiKalyanCess)
+		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+		receiptModel.KrishiKalyanCess = &tax
+	}
 
 	err = db.Create(&receiptModel).Error
 	return &receiptModel, err

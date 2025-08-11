@@ -47,4 +47,23 @@ func TestCalcGST(t *testing.T) {
 		)
 	}
 
+	rateZero := 0
+	rateZeroAmountWant := decimal.NewFromFloat(2000)
+	rateZeroGSTAmount := decimal.NewFromFloat(0)
+
+	gstCalczero := calcGST(value, rateZero)
+
+	if !gstCalczero.Amount.Equal(rateZeroAmountWant) ||
+		!gstCalczero.CGST.Equal(rateZeroGSTAmount) ||
+		!gstCalczero.SGST.Equal(rateZeroGSTAmount) {
+		t.Errorf("want:\nAmount: %s, CGST: %s, SGST: %s\nGot: Amount: %s, CGST: %s, SGST: %s",
+			rateZeroAmountWant.String(),
+			rateZeroGSTAmount.String(),
+			rateZeroGSTAmount.String(),
+			gstCalczero.Amount.String(),
+			gstCalczero.CGST.String(),
+			gstCalczero.SGST.String(),
+		)
+	}
+
 }

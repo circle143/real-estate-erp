@@ -29,6 +29,9 @@ type Receipt struct {
 	Amount            decimal.Decimal    `gorm:"not null;type:numeric" json:"amount"`
 	CGST              *decimal.Decimal   `gorm:"type:numeric" json:"cgst,omitempty"`
 	SGST              *decimal.Decimal   `gorm:"type:numeric" json:"sgst,omitempty"`
+	ServiceTax        *decimal.Decimal   `gorm:"type:numeric" json:"serviceTax,omitempty"`
+	SwathchBharatCess *decimal.Decimal   `gorm:"type:numeric" json:"swatchBharatCess,omitempty"`
+	KrishiKalyanCess  *decimal.Decimal   `gorm:"type:numeric" json:"krishiKalyanCess,omitempty"`
 	Cleared           *ReceiptClear      `gorm:"foreignKey:ReceiptId;constraint:OnDelete:CASCADE" json:"cleared,omitempty"`
 	CreatedAt         time.Time          `gorm:"autoCreateTime" json:"createdAt"`
 }
@@ -38,6 +41,14 @@ func (r Receipt) GetCreatedAt() time.Time {
 }
 
 func calcGST(totalAmount decimal.Decimal, rate int) *AmountWithGSTInclusive {
+	if rate <= 0 {
+		return &AmountWithGSTInclusive{
+			Amount: totalAmount,
+			CGST:   decimal.Zero,
+			SGST:   decimal.Zero,
+		}
+	}
+
 	decimalHundred := decimal.NewFromInt(100)
 	decimalRate := decimal.NewFromInt(int64(rate))
 	gstAmount := totalAmount.Sub(totalAmount.Mul(decimalHundred.Div(decimalHundred.Add(decimalRate)))).Round(2)
