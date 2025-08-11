@@ -1,6 +1,9 @@
 package flat
 
 import (
+	"net/http"
+	"strings"
+
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
@@ -9,8 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
-	"net/http"
-	"strings"
 )
 
 func getSalesPaidAmount(flats *[]models.Flat) {
@@ -22,12 +23,18 @@ func getSalesPaidAmount(flats *[]models.Flat) {
 			totalSalePaid := decimal.Zero
 
 			for _, receipt := range flat.SaleDetail.Receipts {
-				if receipt.Cleared != nil {
-					totalSalePaid = totalSalePaid.Add(receipt.TotalAmount)
+				if receipt.Mode != custom.ADJUSTMENT {
+					if receipt.Cleared != nil {
+						totalSalePaid = totalSalePaid.Add(receipt.TotalAmount)
+					}
+				} else {
+					// adjustment will update total sale price
+					totalSalePrice = totalSalePrice.Add(receipt.TotalAmount)
 				}
 			}
 
 			rem := totalSalePrice.Sub(totalSalePaid)
+			flat.SaleDetail.TotalPayableAmount = &totalSalePrice
 			flat.SaleDetail.Paid = &totalSalePaid
 			flat.SaleDetail.Remaining = &rem
 		}

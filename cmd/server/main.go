@@ -1,11 +1,12 @@
 package main
 
 import (
-	appInit "circledigital.in/real-state-erp/init"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
+
+	appInit "circledigital.in/real-state-erp/init"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -28,3 +29,4 @@ func main() {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
+

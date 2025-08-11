@@ -22,6 +22,7 @@ type Sale struct {
 	TotalPrice         decimal.Decimal       `gorm:"not null;type:numeric" json:"totalPrice"`
 	Paid               *decimal.Decimal      `gorm:"-" json:"paid,omitempty"` // used to compute paid amount during req lifecycle
 	Remaining          *decimal.Decimal      `gorm:"-" json:"remaining,omitempty"`
+	TotalPayableAmount *decimal.Decimal      `gorm:"-" json:"totalPayableAmount,omitempty"` // used to compute paid amount during req lifecycle
 	PriceBreakdown     PriceBreakdownDetails `gorm:"not null;type:jsonb" json:"priceBreakdown"`
 	CreatedAt          time.Time             `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt          time.Time             `gorm:"autoUpdateTime" json:"updatedAt"`
