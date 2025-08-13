@@ -92,6 +92,7 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 		ReceiptNumber:     h.ReceiptNumber,
 		SaleId:            uuid.MustParse(saleId),
 		TotalAmount:       decimal.NewFromFloat(h.TotalAmount),
+		Amount:            decimal.NewFromFloat(h.TotalAmount),
 		TransactionNumber: h.TransactionNumber,
 		BankName:          h.BankName,
 		Mode:              custom.ReceiptMode(h.Mode),
@@ -99,12 +100,32 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 	}
 
 	mode := custom.ReceiptMode(h.Mode)
-	if mode != custom.ADJUSTMENT && !h.DateIssued.Time.Before(gstDate) {
+	if mode != custom.ADJUSTMENT {
+		if !h.DateIssued.Time.Before(gstDate) {
+			gstInfo := receiptModel.CalcGST(h.GstRate)
+			receiptModel.Amount = gstInfo.Amount
+			receiptModel.SGST = &gstInfo.SGST
+			receiptModel.CGST = &gstInfo.CGST
+		}
 
-		gstInfo := receiptModel.CalcGST(h.GstRate)
-		receiptModel.Amount = gstInfo.Amount
-		receiptModel.SGST = &gstInfo.SGST
-		receiptModel.CGST = &gstInfo.CGST
+		if h.ServiceTax > 0 {
+			tax := decimal.NewFromFloat(h.ServiceTax)
+			receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+			receiptModel.ServiceTax = &tax
+		}
+
+		if h.SwatchBharatCess > 0 {
+			tax := decimal.NewFromFloat(h.SwatchBharatCess)
+			receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+			receiptModel.SwathchBharatCess = &tax
+		}
+
+		if h.KrishiKalyanCess > 0 {
+			tax := decimal.NewFromFloat(h.KrishiKalyanCess)
+			receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
+			receiptModel.KrishiKalyanCess = &tax
+		}
+
 	}
 
 	if h.ServiceTax > 0 {
