@@ -128,24 +128,6 @@ func (h *hCreateSaleReceipt) execute(db *gorm.DB, orgId, society, saleId string)
 
 	}
 
-	if h.ServiceTax > 0 {
-		tax := decimal.NewFromFloat(h.ServiceTax)
-		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
-		receiptModel.ServiceTax = &tax
-	}
-
-	if h.SwatchBharatCess > 0 {
-		tax := decimal.NewFromFloat(h.SwatchBharatCess)
-		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
-		receiptModel.SwathchBharatCess = &tax
-	}
-
-	if h.KrishiKalyanCess > 0 {
-		tax := decimal.NewFromFloat(h.KrishiKalyanCess)
-		receiptModel.TotalAmount = receiptModel.TotalAmount.Sub(tax)
-		receiptModel.KrishiKalyanCess = &tax
-	}
-
 	err = db.Create(&receiptModel).Error
 	return &receiptModel, err
 }
