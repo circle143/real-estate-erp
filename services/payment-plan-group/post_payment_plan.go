@@ -77,20 +77,7 @@ func (h *hCreatePaymentPlan) execute(db *gorm.DB, orgId, society string) (*model
 		return nil, err
 	}
 
-	// paymentPlanModel := models.PaymentPlan{
-	// 	SocietyId:      society,
-	// 	OrgId:          uuid.MustParse(orgId),
-	// 	Scope:          custom.PaymentPlanScope(h.Scope),
-	// 	ConditionType:  custom.PaymentPlanCondition(h.ConditionType),
-	// 	ConditionValue: h.ConditionValue,
-	// 	Amount:         h.Amount,
-	// 	Summary:        h.Summary,
-	// }
-	//
-	// err = db.Create(&paymentPlanModel).Error
-
 	// create payment plan group
-
 	group := models.PaymentPlanGroup{
 		Name:      h.Name,
 		Abbr:      h.Abbr,

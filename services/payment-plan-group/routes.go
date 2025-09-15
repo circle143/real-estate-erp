@@ -18,9 +18,12 @@ func (s *paymentPlanService) GetRoutes() *chi.Mux {
 		router.Use(authorizationMiddleware.OrganizationAuthorization)
 
 		router.Post("/", s.createPaymentPlan)
+
 		router.Post("/{paymentPlanItemId}/tower/{towerId}", s.markPaymentPlanItemActiveForTower)
 		router.Post("/{paymentPlanItemId}/flat/{flatId}", s.markPaymentPlanItemActiveForFlat)
+
 		router.Get("/", s.getPaymentPlan)
+
 		router.Get("/tower/{towerId}", s.getTowerPaymentPlan)
 		router.Get("/flat/{flatId}", s.getFlatPaymentPlan)
 	})

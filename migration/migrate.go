@@ -33,20 +33,10 @@ func Migrate(db *gorm.DB) {
 		&models.ReceiptClear{},
 	)
 
-	//err := db.Migrator().DropTable(
-	//	//&models.Organization{},
-	//	//&models.User{},
-	//	//&models.Society{},
-	//	//&models.FlatType{},
-	//	//&models.Tower{},
-	//	//&models.Flat{},
-	//	//&models.Customer{},
-	//	//&models.Sale{},
-	//	//&models.CompanyCustomer{},
-	//	//&models.SalePaymentStatus{},
-	//	&models.Receipt{},
-	//	&models.ReceiptClear{},
-	//)
+	// err := db.Migrator().DropTable(
+	// 	&models.TowerPaymentStatus{},
+	// 	&models.FlatPaymentStatus{},
+	// )
 
 	if err != nil {
 		log.Fatalf("Error migrating db: %v", err)

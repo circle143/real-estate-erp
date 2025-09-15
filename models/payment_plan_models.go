@@ -41,6 +41,7 @@ type PaymentPlanRatioItem struct {
 	Scope              custom.PaymentPlanItemScope `gorm:"not null" json:"scope"`
 	ConditionType      custom.PaymentPlanCondition `gorm:"not null" json:"conditionType"`
 	ConditionValue     int                         `json:"conditionValue,omitempty"`
+	Active             *bool                       `gorm:"-" json:"active,omitempty"`
 	CreatedAt          time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt          time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
 }
