@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	"circledigital.in/real-state-erp/models"
+	"circledigital.in/real-state-erp/services/flat"
+	"circledigital.in/real-state-erp/services/tower"
+	"circledigital.in/real-state-erp/utils/common"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
@@ -142,10 +145,146 @@ func (s *paymentPlanService) createPaymentPlan(w http.ResponseWriter, r *http.Re
 
 func (s *paymentPlanService) addPaymentPlanRatio(w http.ResponseWriter, r *http.Request) {}
 
+type hMarkPaymentPlanActiveForTower struct{}
+
+func (h *hMarkPaymentPlanActiveForTower) validate(db *gorm.DB, orgId, society, paymentId, towerId string) error {
+	paymentUUID := uuid.MustParse(paymentId)
+	towerUUID := uuid.MustParse(towerId)
+
+	// validate payment permission (society match)
+	// paymentSocietyInfoService := CreatePaymentPlanSocietyInfoService(db, paymentUUID)
+	// if err := common.IsSameSociety(paymentSocietyInfoService, orgId, society); err != nil {
+	// 	return err
+	// }
+
+	// validate tower permission (society match)
+	towerSocietyInfoService := tower.CreateTowerSocietyInfoService(db, towerUUID)
+	if err := common.IsSameSociety(towerSocietyInfoService, orgId, society); err != nil {
+		return err
+	}
+
+	// validate that this payment item is scoped for TOWER
+	var item models.PaymentPlanRatioItem
+	if err := db.First(&item, "id = ?", paymentUUID).Error; err != nil {
+		return err
+	}
+
+	if item.Scope != custom.SCOPE_TOWER {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Selected payment plan item can't be associated with a tower.",
+		}
+	}
+
+	return nil
+}
+
+func (h *hMarkPaymentPlanActiveForTower) execute(db *gorm.DB, orgId, society, paymentId, towerId string) error {
+	err := h.validate(db, orgId, society, paymentId, towerId)
+	if err != nil {
+		return err
+	}
+
+	// insert TowerPaymentStatus (idempotent)
+	status := models.TowerPaymentStatus{
+		TowerId:   uuid.MustParse(towerId),
+		PaymentId: uuid.MustParse(paymentId),
+	}
+	if err := db.FirstOrCreate(&status, status).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *paymentPlanService) markPaymentPlanItemActiveForTower(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	paymentId := chi.URLParam(r, "paymentPlanItemId")
+	towerId := chi.URLParam(r, "towerId")
+
+	towerPayment := hMarkPaymentPlanActiveForTower{}
+	err := towerPayment.execute(s.db, orgId, societyRera, paymentId, towerId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Payment plan is now active."
+
+	payload.EncodeJSON(w, http.StatusCreated, response)
 
 }
 
+type hMarkPaymentPlanActiveForFlat struct{}
+
+func (h *hMarkPaymentPlanActiveForFlat) validate(db *gorm.DB, orgId, society, paymentId, flatId string) error {
+	paymentUUID := uuid.MustParse(paymentId)
+	flatUUID := uuid.MustParse(flatId)
+
+	// validate payment permission (society match)
+	// paymentSocietyInfoService := CreatePaymentPlanSocietyInfoService(db, paymentUUID)
+	// if err := common.IsSameSociety(paymentSocietyInfoService, orgId, society); err != nil {
+	// 	return err
+	// }
+
+	// validate flat permission (society match)
+	flatSocietyInfoService := flat.CreateFlatSocietyInfoService(db, flatUUID)
+	if err := common.IsSameSociety(flatSocietyInfoService, orgId, society); err != nil {
+		return err
+	}
+
+	// validate that this payment item is scoped for FLAT
+	var item models.PaymentPlanRatioItem
+	if err := db.First(&item, "id = ?", paymentUUID).Error; err != nil {
+		return err
+	}
+
+	if item.Scope != custom.SCOPE_FLAT {
+		return &custom.RequestError{
+			Status:  http.StatusBadRequest,
+			Message: "Selected payment plan item can't be associated with a flat.",
+		}
+	}
+
+	return nil
+}
+
+func (h *hMarkPaymentPlanActiveForFlat) execute(db *gorm.DB, orgId, society, paymentId, flatId string) error {
+	if err := h.validate(db, orgId, society, paymentId, flatId); err != nil {
+		return err
+	}
+
+	// insert FlatPaymentStatus (idempotent)
+	status := models.FlatPaymentStatus{
+		FlatId:    uuid.MustParse(flatId),
+		PaymentId: uuid.MustParse(paymentId),
+	}
+	if err := db.FirstOrCreate(&status, status).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *paymentPlanService) markPaymentPlanItemActiveForFlat(w http.ResponseWriter, r *http.Request) {
+	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
+	societyRera := chi.URLParam(r, "society")
+	paymentId := chi.URLParam(r, "paymentPlanItemId")
+	flatId := chi.URLParam(r, "flatId")
+
+	towerPayment := hMarkPaymentPlanActiveForFlat{}
+	err := towerPayment.execute(s.db, orgId, societyRera, paymentId, flatId)
+	if err != nil {
+		payload.HandleError(w, err)
+		return
+	}
+
+	var response custom.JSONResponse
+	response.Error = false
+	response.Message = "Payment plan is now active."
+
+	payload.EncodeJSON(w, http.StatusCreated, response)
 
 }
