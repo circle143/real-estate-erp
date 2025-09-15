@@ -28,7 +28,7 @@ type PaymentPlanRatio struct {
 	PaymentPlanGroupId uuid.UUID              `gorm:"not null" json:"paymentPlanGroupId"`
 	PaymentPlanGroup   *PaymentPlanGroup      `gorm:"foreignKey:PaymentPlanGroupId" json:"PaymentPlanGroup"`
 	Ratio              string                 `gorm:"not null" json:"ratio"`
-	Ratios             []PaymentPlanRatioItem `gorm:"foreignKey:PaymentPlanRatioId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"items,omitempty"`
+	Ratios             []PaymentPlanRatioItem `gorm:"foreignKey:PaymentPlanRatioId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"items"`
 	CreatedAt          time.Time              `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt          time.Time              `gorm:"autoUpdateTime" json:"updatedAt"`
 }
