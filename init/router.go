@@ -8,6 +8,7 @@ import (
 	"circledigital.in/real-state-erp/services/flat"
 	"circledigital.in/real-state-erp/services/organization"
 	"circledigital.in/real-state-erp/services/receipt"
+	"circledigital.in/real-state-erp/services/reports"
 	"circledigital.in/real-state-erp/services/sale"
 	"circledigital.in/real-state-erp/services/society"
 	"circledigital.in/real-state-erp/services/tower"
@@ -37,6 +38,7 @@ var services = []serviceFactory{
 	broker.CreateBrokerService,
 	bank.CreateBankService,
 	receipt.CreateReceiptService,
+	reports.NewReportService,
 }
 
 // handle400 returns custom responses for not found routes and not allowed methods
