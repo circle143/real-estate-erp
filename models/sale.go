@@ -36,3 +36,19 @@ type Sale struct {
 func (u Sale) GetCreatedAt() time.Time {
 	return u.CreatedAt
 }
+
+func (u Sale) Pending() decimal.Decimal {
+	return u.TotalPrice.Sub(u.PaidAmount())
+}
+
+func (u Sale) PaidAmount() decimal.Decimal {
+	sum := decimal.Zero
+
+	for _, receipt := range u.Receipts {
+		if receipt.Cleared != nil {
+			sum = sum.Add(receipt.TotalAmount)
+		}
+	}
+
+	return sum
+}

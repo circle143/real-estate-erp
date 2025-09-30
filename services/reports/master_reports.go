@@ -40,7 +40,7 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 	// --- Step 2: Base headers ---
 	baseHeaders := []string{
 		"Tower_Name", "Flat_Name", "FloorNumber", "Facing", "SaleableArea", "UnitType",
-		"SaleNumber", "TotalPrice",
+		"SaleNumber", "TotalPrice", "Paid", "Pending",
 		"BrokerName", "BrokerAadhar", "BrokerPan",
 		"PaymentPlanGroup", "PaymentPlanRatio",
 		"CustomerName", "CustomerEmail", "CustomerPhone", "CustomerPan", "CustomerAadhar",
@@ -59,30 +59,6 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 			return err
 		}
 	}
-
-	// --- Step 4: Add PriceBreakdown merged header + summaries ---
-	// if len(priceBreakdownSummaries) > 0 {
-	// startCol := len(baseHeaders) + 1
-	// endCol := startCol + len(priceBreakdownSummaries) - 1
-	//
-	// // Merge row 1 for "PriceBreakdown"
-	// startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
-	// endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
-	// if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 	return err
-	// }
-	// if err := file.SetCellValue(sheetName, startCell, "PriceBreakdown"); err != nil {
-	// 	return err
-	// }
-	//
-	// // Row 2: each summary name
-	// for j, summary := range priceBreakdownSummaries {
-	// 	cell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
-	// 	if err := file.SetCellValue(sheetName, cell, summary); err != nil {
-	// 		return err
-	// 	}
-	// }
-	// }
 
 	// --- Step 4: Add PriceBreakdown merged header + summaries ---
 	if len(priceBreakdownSummaries) > 0 {
@@ -145,6 +121,8 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 			saleVals := []any{
 				sale.SaleNumber,
 				sale.TotalPrice.String(),
+				sale.PaidAmount().String(),
+				sale.Pending().String(),
 			}
 
 			var brokerVals []any
