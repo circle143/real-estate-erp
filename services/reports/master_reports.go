@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
@@ -21,8 +22,23 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 		return err
 	}
 
-	// Header row (UUID + time fields removed)
-	headers := []string{
+	// --- Step 1: Collect unique price breakdown summaries ---
+	summarySet := make(map[string]struct{})
+	for _, flat := range tower.Flats {
+		if flat.SaleDetail != nil {
+			for _, bd := range flat.SaleDetail.PriceBreakdown {
+				summarySet[bd.Summary] = struct{}{}
+			}
+		}
+	}
+	var priceBreakdownSummaries []string
+	for summary := range summarySet {
+		priceBreakdownSummaries = append(priceBreakdownSummaries, summary)
+	}
+	sort.Strings(priceBreakdownSummaries) // consistent column order
+
+	// --- Step 2: Base headers ---
+	baseHeaders := []string{
 		"Tower_Name", "Flat_Name", "FloorNumber", "Facing", "SaleableArea", "UnitType",
 		"SaleNumber", "TotalPrice",
 		"BrokerName", "BrokerAadhar", "BrokerPan",
@@ -30,15 +46,89 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 		"CustomerName", "CustomerEmail", "CustomerPhone", "CustomerPan", "CustomerAadhar",
 		"CompanyName", "CompanyPan", "CompanyGst",
 	}
-	for i, h := range headers {
+
+	// --- Step 3: Write base headers in row 1 and merge down to row 2 ---
+	for i, h := range baseHeaders {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		if err := file.SetCellValue(sheetName, cell, h); err != nil {
 			return err
 		}
+		startCell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		endCell, _ := excelize.CoordinatesToCellName(i+1, 2)
+		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+			return err
+		}
 	}
 
-	// Data rows
-	rowIdx := 2
+	// --- Step 4: Add PriceBreakdown merged header + summaries ---
+	// if len(priceBreakdownSummaries) > 0 {
+	// startCol := len(baseHeaders) + 1
+	// endCol := startCol + len(priceBreakdownSummaries) - 1
+	//
+	// // Merge row 1 for "PriceBreakdown"
+	// startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
+	// endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
+	// if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+	// 	return err
+	// }
+	// if err := file.SetCellValue(sheetName, startCell, "PriceBreakdown"); err != nil {
+	// 	return err
+	// }
+	//
+	// // Row 2: each summary name
+	// for j, summary := range priceBreakdownSummaries {
+	// 	cell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
+	// 	if err := file.SetCellValue(sheetName, cell, summary); err != nil {
+	// 		return err
+	// 	}
+	// }
+	// }
+
+	// --- Step 4: Add PriceBreakdown merged header + summaries ---
+	if len(priceBreakdownSummaries) > 0 {
+		startCol := len(baseHeaders) + 1
+		endCol := startCol + len(priceBreakdownSummaries) - 1
+
+		// Merge row 1 for "PriceBreakdown"
+		startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
+		endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
+		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+			return err
+		}
+		if err := file.SetCellValue(sheetName, startCell, "PriceBreakdown"); err != nil {
+			return err
+		}
+
+		// Create a centered bold style
+		styleID, err := file.NewStyle(&excelize.Style{
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+			Font: &excelize.Font{
+				Bold: true,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Apply style to merged range
+		if err := file.SetCellStyle(sheetName, startCell, endCell, styleID); err != nil {
+			return err
+		}
+
+		// Row 2: each summary name
+		for j, summary := range priceBreakdownSummaries {
+			cell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
+			if err := file.SetCellValue(sheetName, cell, summary); err != nil {
+				return err
+			}
+		}
+	}
+
+	// --- Step 5: Data rows (start from row 3 now) ---
+	rowIdx := 3
 	for _, flat := range tower.Flats {
 		baseFlat := []any{
 			sheetName,
@@ -52,13 +142,11 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 		if flat.SaleDetail != nil {
 			sale := flat.SaleDetail
 
-			// sale values (removed ID + timestamps)
 			saleVals := []any{
 				sale.SaleNumber,
 				sale.TotalPrice.String(),
 			}
 
-			// broker values (removed ID)
 			var brokerVals []any
 			if sale.Broker != nil {
 				brokerVals = []any{
@@ -70,7 +158,6 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 				brokerVals = []any{"-", "-", "-"}
 			}
 
-			// payment plan group + ratio
 			var planVals []any
 			if sale.PaymentPlanRatio != nil && sale.PaymentPlanRatio.PaymentPlanGroup != nil {
 				planVals = []any{
@@ -81,7 +168,13 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 				planVals = []any{"-", "-"}
 			}
 
-			// customers
+			// map summary → total
+			breakdownMap := make(map[string]string)
+			for _, bd := range sale.PriceBreakdown {
+				breakdownMap[bd.Summary] = bd.Total.String()
+			}
+
+			// Customers
 			if len(sale.Customers) > 0 {
 				for _, cust := range sale.Customers {
 					custVals := []any{
@@ -94,6 +187,16 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 					companyVals := []any{"-", "-", "-"}
 					rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
 					rowVals = append(rowVals, companyVals...)
+
+					// add breakdown totals
+					for _, summary := range priceBreakdownSummaries {
+						if val, ok := breakdownMap[summary]; ok {
+							rowVals = append(rowVals, val)
+						} else {
+							rowVals = append(rowVals, "-")
+						}
+					}
+
 					for colIdx, val := range rowVals {
 						cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
 						if err := file.SetCellValue(sheetName, cell, val); err != nil {
@@ -103,7 +206,6 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 					rowIdx++
 				}
 			} else if sale.CompanyCustomer != nil {
-				// company customer row (removed ID)
 				custVals := []any{"-", "-", "-", "-", "-"}
 				companyVals := []any{
 					sale.CompanyCustomer.Name,
@@ -112,19 +214,13 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 				}
 				rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
 				rowVals = append(rowVals, companyVals...)
-				for colIdx, val := range rowVals {
-					cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
-					if err := file.SetCellValue(sheetName, cell, val); err != nil {
-						return err
+				for _, summary := range priceBreakdownSummaries {
+					if val, ok := breakdownMap[summary]; ok {
+						rowVals = append(rowVals, val)
+					} else {
+						rowVals = append(rowVals, "-")
 					}
 				}
-				rowIdx++
-			} else {
-				// sale without customer
-				custVals := []any{"-", "-", "-", "-", "-"}
-				companyVals := []any{"-", "-", "-"}
-				rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
-				rowVals = append(rowVals, companyVals...)
 				for colIdx, val := range rowVals {
 					cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
 					if err := file.SetCellValue(sheetName, cell, val); err != nil {
@@ -142,6 +238,9 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 			emptyCompany := []any{"-", "-", "-"}
 			rowVals := append(append(append(append(baseFlat, emptySale...), emptyBroker...), emptyPlan...), emptyCust...)
 			rowVals = append(rowVals, emptyCompany...)
+			for range priceBreakdownSummaries {
+				rowVals = append(rowVals, "-")
+			}
 			for colIdx, val := range rowVals {
 				cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
 				if err := file.SetCellValue(sheetName, cell, val); err != nil {
@@ -154,7 +253,6 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 
 	return nil
 }
-
 func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, error) {
 	var towerData []models.Tower
 	err := db.
