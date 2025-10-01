@@ -5,6 +5,7 @@ import (
 
 	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 type PaymentPlanGroup struct {
@@ -33,6 +34,18 @@ type PaymentPlanRatio struct {
 	UpdatedAt          time.Time              `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
+func (p PaymentPlanRatio) GetRatioAmountDetail(ratioID uuid.UUID, totalPayableAmount, remaining decimal.Decimal) (*Finance, *time.Time) {
+	for _, item := range p.Ratios {
+		if item.Id == ratioID {
+			// Found the matching item, calculate finance
+			return item.GetAmountDetails(totalPayableAmount, remaining), &item.CreatedAt
+		}
+	}
+
+	// If not found, return zeroed Finance
+	return nil, nil
+}
+
 type PaymentPlanRatioItem struct {
 	Id                 uuid.UUID                   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	PaymentPlanRatioId uuid.UUID                   `gorm:"not null" json:"paymentPlanRatioId"`
@@ -45,4 +58,30 @@ type PaymentPlanRatioItem struct {
 	Active             *bool                       `gorm:"-" json:"active,omitempty"`
 	CreatedAt          time.Time                   `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt          time.Time                   `gorm:"autoUpdateTime" json:"updatedAt"`
+}
+
+func (p PaymentPlanRatioItem) GetAmountDetails(totalPayableAmount, remaining decimal.Decimal) *Finance {
+	// Convert integer percent to decimal
+	ratio, ratioErr := decimal.NewFromString(p.Ratio)
+	if ratioErr != nil {
+		return nil
+	}
+	ratioDec := ratio.Div(decimal.NewFromInt(100))
+
+	// Calculate total amount based on ratio
+	total := totalPayableAmount.Mul(ratioDec)
+
+	// Ensure paid does not exceed total
+	paid := decimal.Min(remaining, total)
+	pending := total.Sub(paid)
+
+	return &Finance{
+		Total:     total,
+		Paid:      paid,
+		Remaining: pending,
+	}
+}
+
+func (p PaymentPlanRatioItem) IsActive() bool {
+	return true
 }

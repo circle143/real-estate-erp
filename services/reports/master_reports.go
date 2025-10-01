@@ -37,6 +37,7 @@ func (p paymentPlanInfo) getItems() []models.Header {
 	items := make([]models.Header, 0, len(p.Items))
 	for _, item := range p.Items {
 		items = append(items, models.Header{
+			ID:      item.ID,
 			Heading: item.Description,
 			Items: []models.Header{
 				{Heading: "Collection Date"},
@@ -164,7 +165,6 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 				Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
 				Items: ratioItems,
 			}
-
 		}
 	}
 

@@ -66,9 +66,16 @@ func (p SafePrint) Print(s any) {
 func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []string {
 	var row []string
 
+	totalPaidRemaining := decimal.Zero
+	totalPayableAmount := decimal.Zero
+	if f.SaleDetail != nil {
+		totalPaidRemaining = f.SaleDetail.PaidAmount()
+		totalPayableAmount = f.SaleDetail.GetTotalPayableAmount()
+	}
+
 	// Recursive helper to flatten headers and fetch values
-	var fill func(hs []Header, parent string, level int)
-	fill = func(hs []Header, parent string, level int) {
+	var fill func(hs []Header, parent string, level int, parentID uuid.UUID)
+	fill = func(hs []Header, parent string, level int, parentID uuid.UUID) {
 		for _, h := range hs {
 			// if leaf or level is 1
 			if level == 1 || len(h.Items) == 0 {
@@ -204,19 +211,35 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 
 					requiredReceipt := receipts[ind-1]
 					row = append(row, requiredReceipt.ReceiptNumber)
-					row = append(row, formatDateTimeAMPM(requiredReceipt.CreatedAt))
+					row = append(row, formatDateTime(requiredReceipt.CreatedAt))
 					row = append(row, requiredReceipt.TotalAmount.String())
 					row = append(row, string(requiredReceipt.Mode))
 					row = append(row, requiredReceipt.GetReceiptStatus())
 					if requiredReceipt.Cleared != nil {
-						row = append(row, formatDateTimeAMPM(requiredReceipt.Cleared.CreatedAt))
+						row = append(row, formatDateTime(requiredReceipt.Cleared.CreatedAt))
 					} else {
 						row = append(row, "")
 					}
 				} else {
+					//TODO: update payment plan active detail here
 					// this is payment plan row
+					if f.SaleDetail.PaymentPlanRatioId == parentID {
+						// handle payment plan here
+						financeDetail, collectionDate := f.SaleDetail.PaymentPlanRatio.GetRatioAmountDetail(h.ID, totalPayableAmount, totalPaidRemaining)
+
+						if financeDetail != nil {
+							row = append(row, formatDateTime(*collectionDate))
+							row = append(row, financeDetail.Total.String())
+							row = append(row, financeDetail.Paid.String())
+							row = append(row, financeDetail.Remaining.String())
+
+							totalPaidRemaining = totalPaidRemaining.Sub(financeDetail.Paid)
+							continue
+						}
+					}
 					count := len(h.Items)
 					row = append(row, make([]string, max(1, count))...)
+
 				}
 			} else if len(h.Items) > 0 {
 				// Recursive for nested headers (Payment Plans, Installments, etc.)
@@ -226,12 +249,12 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 				} else {
 					nextParent = fmt.Sprintf("%s-%s", parent, h.Heading)
 				}
-				fill(h.Items, nextParent, level+1)
+				fill(h.Items, nextParent, level+1, h.ID)
 			}
 		}
 	}
 
-	fill(headers, "", 0)
+	fill(headers, "", 0, uuid.Nil)
 	for i, v := range row {
 		if strings.TrimSpace(v) == "" {
 			row[i] = "-"
@@ -242,6 +265,6 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 	return row
 }
 
-func formatDateTimeAMPM(t time.Time) string {
-	return t.Format("02-01-2006 03:04 PM") // dd-mm-yyyy hh:mm AM/PM
+func formatDateTime(t time.Time) string {
+	return t.Format("02-01-2006")
 }
