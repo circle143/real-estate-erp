@@ -40,6 +40,18 @@ func (r Receipt) GetCreatedAt() time.Time {
 	return r.CreatedAt
 }
 
+func (r Receipt) GetReceiptStatus() string {
+	if r.Cleared != nil {
+		return "Cleared"
+	}
+
+	if r.Failed {
+		return "Failed"
+	}
+
+	return "Pending"
+}
+
 func calcGST(totalAmount decimal.Decimal, rate int) *AmountWithGSTInclusive {
 	if rate <= 0 {
 		return &AmountWithGSTInclusive{
