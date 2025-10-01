@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"circledigital.in/real-state-erp/models"
@@ -119,6 +120,26 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	for _, item := range paymentPlanDetails {
 		headerKey := fmt.Sprintf("%d%s", len(baseHeaders), item.getHeading())
 		baseHeaders[headerKey] = item.getItems()
+	}
+
+	// get max valid installment number
+	installmentCount := 0
+	for _, flat := range tower.Flats {
+		if flat.SaleDetail != nil {
+			installmentCount = max(installmentCount, flat.SaleDetail.GetValidReceiptsCount())
+		}
+	}
+
+	if installmentCount > 0 {
+		// add installment header
+		installmentHeaderKey := fmt.Sprintf("%dInstallment", len(baseHeaders))
+		installmentItems := make([]string, 0, installmentCount)
+
+		for i := 1; i <= installmentCount; i++ {
+			installmentItems = append(installmentItems, strconv.Itoa(i))
+		}
+
+		baseHeaders[installmentHeaderKey] = installmentItems
 	}
 
 	// add headers
