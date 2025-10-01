@@ -260,7 +260,7 @@ func getMaxColumnWidth(f *excelize.File, sheet, col string, maxRow int) float64 
 		}
 	}
 	// Multiply by 1.2 for padding
-	return float64(maxLen) * 1.2
+	return float64(min(maxLen, 15)) * 1.2
 }
 
 // Recursive function to render headers
