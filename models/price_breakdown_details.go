@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -16,6 +17,15 @@ type PriceBreakdownDetail struct {
 }
 
 type PriceBreakdownDetails []PriceBreakdownDetail
+
+func (p PriceBreakdownDetails) GetPriceFromSummary(summary string) decimal.Decimal {
+	for _, detail := range p {
+		if detail.Summary == summary {
+			return detail.Total
+		}
+	}
+	return decimal.Zero // return 0 if no match
+}
 
 func (p PriceBreakdownDetails) Value() (driver.Value, error) {
 	return json.Marshal(p)

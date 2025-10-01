@@ -39,7 +39,7 @@ func (u Sale) GetCreatedAt() time.Time {
 }
 
 func (u Sale) Pending() decimal.Decimal {
-	return u.TotalAmountPayable().Sub(u.PaidAmount())
+	return u.GetTotalPayableAmount().Sub(u.PaidAmount())
 }
 
 func (u Sale) PaidAmount() decimal.Decimal {
@@ -54,7 +54,7 @@ func (u Sale) PaidAmount() decimal.Decimal {
 	return sum
 }
 
-func (u Sale) TotalAmountPayable() decimal.Decimal {
+func (u Sale) GetTotalPayableAmount() decimal.Decimal {
 	payableAmount := u.TotalPrice
 
 	for _, receipt := range u.Receipts {

@@ -17,11 +17,6 @@ import (
 	"gorm.io/gorm"
 )
 
-type header struct {
-	Heading string
-	Items   []header
-}
-
 type paymentPlanItemInfo struct {
 	ID          uuid.UUID
 	Description string
@@ -38,12 +33,12 @@ func (p paymentPlanInfo) getHeading() string {
 	return fmt.Sprintf("%s (%s)", p.Name, p.Ratio)
 }
 
-func (p paymentPlanInfo) getItems() []header {
-	items := make([]header, 0, len(p.Items))
+func (p paymentPlanInfo) getItems() []models.Header {
+	items := make([]models.Header, 0, len(p.Items))
 	for _, item := range p.Items {
-		items = append(items, header{
+		items = append(items, models.Header{
 			Heading: item.Description,
-			Items: []header{
+			Items: []models.Header{
 				{Heading: "Collection Date"},
 				{Heading: "Total Amount"},
 				{Heading: "Paid"},
@@ -63,10 +58,10 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	}
 
 	// base headers
-	baseHeaders := []header{
+	baseHeaders := []models.Header{
 		{
-			Heading: "Flat details",
-			Items: []header{
+			Heading: models.HeadingFlat,
+			Items: []models.Header{
 				{Heading: "Flat"},
 				{Heading: "Floor"},
 				{Heading: "Facing"},
@@ -76,8 +71,8 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			},
 		},
 		{
-			Heading: "Sale Details",
-			Items: []header{
+			Heading: models.HeadingSale,
+			Items: []models.Header{
 				{Heading: "ID"},
 				{Heading: "Total Price"},
 				{Heading: "Total Payable Amount"},
@@ -86,23 +81,23 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			},
 		},
 		{
-			Heading: "Broker Details",
-			Items: []header{
+			Heading: models.HeadingBroker,
+			Items: []models.Header{
 				{Heading: "Name"},
 				{Heading: "Aadhar"},
 				{Heading: "PAN"},
 			},
 		},
 		{
-			Heading: "Payment Plan",
-			Items: []header{
+			Heading: models.HeadingPaymentPlan,
+			Items: []models.Header{
 				{Heading: "Name"},
 				{Heading: "Ratio"},
 			},
 		},
 		{
-			Heading: "Customer Details",
-			Items: []header{
+			Heading: models.HeadingCustomer,
+			Items: []models.Header{
 				{Heading: "Name"},
 				{Heading: "Gender"},
 				{Heading: "Email"},
@@ -116,8 +111,8 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			},
 		},
 		{
-			Heading: "Company Customer Details",
-			Items: []header{
+			Heading: models.HeadingCompanyCustomer,
+			Items: []models.Header{
 				{Heading: "Name"},
 				{Heading: "Company PAN"},
 				{Heading: "GST"},
@@ -136,16 +131,16 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			}
 		}
 	}
-	salePriceBreakDownSlice := make([]header, 0, len(salePriceBreakdown))
+	salePriceBreakDownSlice := make([]models.Header, 0, len(salePriceBreakdown))
 	for breakdownItem := range salePriceBreakdown {
-		salePriceBreakDownSlice = append(salePriceBreakDownSlice, header{
+		salePriceBreakDownSlice = append(salePriceBreakDownSlice, models.Header{
 			Heading: breakdownItem,
 		})
 	}
 
-	// add to baseHeaders
-	baseHeaders = append(baseHeaders, header{
-		Heading: "Price Breakdown",
+	// add to basemodels.Headers
+	baseHeaders = append(baseHeaders, models.Header{
+		Heading: models.HeadingPricebreakdown,
 		Items:   salePriceBreakDownSlice,
 	})
 
@@ -173,9 +168,9 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		}
 	}
 
-	// add to baseHeaders
+	// add to basemodels.Headers
 	for _, item := range paymentPlanDetails {
-		baseHeaders = append(baseHeaders, header{
+		baseHeaders = append(baseHeaders, models.Header{
 			Heading: item.getHeading(),
 			Items:   item.getItems(),
 		})
@@ -191,12 +186,12 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 
 	if installmentCount > 0 {
 		// add installment header
-		installmentItems := make([]header, 0, installmentCount)
+		installmentItems := make([]models.Header, 0, installmentCount)
 
 		for i := 1; i <= installmentCount; i++ {
-			installmentItems = append(installmentItems, header{
+			installmentItems = append(installmentItems, models.Header{
 				Heading: strconv.Itoa(i),
-				Items: []header{
+				Items: []models.Header{
 					{Heading: "Date"},
 					{Heading: "Amount"},
 					{Heading: "Type"},
@@ -205,7 +200,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			})
 		}
 
-		baseHeaders = append(baseHeaders, header{
+		baseHeaders = append(baseHeaders, models.Header{
 			Heading: "Installment",
 			Items:   installmentItems,
 		})
@@ -234,6 +229,20 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		file.SetColWidth(sheet, colName, colName, maxWidth)
 	}
 
+	startRow := getMaxDepth(baseHeaders, 1) + 1
+
+	for i, flat := range tower.Flats {
+		rowNum := startRow + i
+		values := flat.GetRowData(baseHeaders, sheet, models.SafePrint{
+			ShouldPrint: i == 0 && sheet == "A",
+		})
+		for colIdx, val := range values {
+			colName, _ := excelize.ColumnNumberToName(colIdx + 1)
+			cell := fmt.Sprintf("%s%d", colName, rowNum)
+			file.SetCellValue(sheet, cell, val)
+		}
+	}
+
 	return nil
 }
 
@@ -252,7 +261,7 @@ func getMaxColumnWidth(f *excelize.File, sheet, col string, maxRow int) float64 
 }
 
 // Recursive function to render headers
-func renderHeaders(f *excelize.File, sheet string, headers []header, row int, colIndex *int, maxDepth int, style int) (int, error) {
+func renderHeaders(f *excelize.File, sheet string, headers []models.Header, row int, colIndex *int, maxDepth int, style int) (int, error) {
 	for _, h := range headers {
 		startCol := *colIndex
 		if len(h.Items) > 0 {
@@ -292,7 +301,7 @@ func renderHeaders(f *excelize.File, sheet string, headers []header, row int, co
 }
 
 // Helper: calculate max depth of nested headers
-func getMaxDepth(headers []header, depth int) int {
+func getMaxDepth(headers []models.Header, depth int) int {
 	max := depth
 	for _, h := range headers {
 		if len(h.Items) > 0 {
@@ -307,365 +316,6 @@ func getMaxDepth(headers []header, depth int) int {
 
 func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 	return newMasterReportSheetManual(file, tower)
-	// sheetName := tower.Name
-	// _, err := file.NewSheet(sheetName)
-	// if err != nil {
-	// 	return err
-	// }
-	//
-	// // --- Step 1: Collect unique price breakdown summaries ---
-	// summarySet := make(map[string]struct{})
-	// for _, flat := range tower.Flats {
-	// 	if flat.SaleDetail != nil {
-	// 		for _, bd := range flat.SaleDetail.PriceBreakdown {
-	// 			summarySet[bd.Summary] = struct{}{}
-	// 		}
-	// 	}
-	// }
-	// var priceBreakdownSummaries []string
-	// for summary := range summarySet {
-	// 	priceBreakdownSummaries = append(priceBreakdownSummaries, summary)
-	// }
-	// sort.Strings(priceBreakdownSummaries)
-	//
-	// // --- Step 2: Base headers ---
-	// baseHeaders := []string{
-	// 	"Tower_Name", "Flat_Name", "FloorNumber", "Facing", "SaleableArea", "UnitType",
-	// 	"SaleNumber", "TotalPrice", "Paid", "Pending",
-	// 	"BrokerName", "BrokerAadhar", "BrokerPan",
-	// 	"PaymentPlanGroup", "PaymentPlanRatio",
-	// 	"CustomerName", "CustomerEmail", "CustomerPhone", "CustomerPan", "CustomerAadhar",
-	// 	"CompanyName", "CompanyPan", "CompanyGst",
-	// }
-	//
-	// // --- Step 3: Write base headers merged over 3 rows ---
-	// for i, h := range baseHeaders {
-	// 	cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-	// 	if err := file.SetCellValue(sheetName, cell, h); err != nil {
-	// 		return err
-	// 	}
-	// 	startCell, _ := excelize.CoordinatesToCellName(i+1, 1)
-	// 	endCell, _ := excelize.CoordinatesToCellName(i+1, 3)
-	// 	if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 		return err
-	// 	}
-	// }
-	//
-	// // --- Step 4: PriceBreakdown headers ---
-	// curCol := len(baseHeaders) + 1
-	// if len(priceBreakdownSummaries) > 0 {
-	// 	startCol := curCol
-	// 	endCol := startCol + len(priceBreakdownSummaries) - 1
-	//
-	// 	// Row 1 merged "PriceBreakdown"
-	// 	startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
-	// 	endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
-	// 	if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 		return err
-	// 	}
-	// 	if err := file.SetCellValue(sheetName, startCell, "PriceBreakdown"); err != nil {
-	// 		return err
-	// 	}
-	// 	style, _ := file.NewStyle(&excelize.Style{Alignment: &excelize.Alignment{Horizontal: "center"}})
-	// 	_ = file.SetCellStyle(sheetName, startCell, endCell, style)
-	//
-	// 	// Each summary spans row 2 → row 3
-	// 	for j, summary := range priceBreakdownSummaries {
-	// 		cell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
-	// 		if err := file.SetCellValue(sheetName, cell, summary); err != nil {
-	// 			return err
-	// 		}
-	// 		startCell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
-	// 		endCell, _ := excelize.CoordinatesToCellName(startCol+j, 3)
-	// 		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-	// 	curCol = endCol + 1
-	// }
-	//
-	// // --- Step 5: PaymentPlanRatio headers ---
-	// type ratioColumn struct {
-	// 	Group string
-	// 	Ratio string
-	// 	Item  string
-	// 	ID    uuid.UUID
-	// 	Scope custom.PaymentPlanItemScope
-	// }
-	// var allRatios []ratioColumn
-	// for _, flat := range tower.Flats {
-	// 	if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
-	// 		group := flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup
-	// 		if group == nil {
-	// 			continue
-	// 		}
-	// 		for _, item := range flat.SaleDetail.PaymentPlanRatio.Ratios {
-	// 			allRatios = append(allRatios, ratioColumn{
-	// 				Group: group.Name,
-	// 				Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
-	// 				Item:  item.Description,
-	// 				ID:    item.Id,
-	// 				Scope: item.Scope,
-	// 			})
-	// 		}
-	// 	}
-	// }
-	// // Deduplicate
-	// seen := make(map[uuid.UUID]struct{})
-	// var uniqueRatios []ratioColumn
-	// for _, rc := range allRatios {
-	// 	if _, ok := seen[rc.ID]; !ok {
-	// 		seen[rc.ID] = struct{}{}
-	// 		uniqueRatios = append(uniqueRatios, rc)
-	// 	}
-	// }
-	//
-	// if len(uniqueRatios) > 0 {
-	// 	// Group by Group+Ratio
-	// 	grouped := make(map[string][]ratioColumn)
-	// 	var order []string
-	// 	for _, rc := range uniqueRatios {
-	// 		key := rc.Group + " - " + rc.Ratio
-	// 		if _, ok := grouped[key]; !ok {
-	// 			order = append(order, key)
-	// 		}
-	// 		grouped[key] = append(grouped[key], rc)
-	// 	}
-	//
-	// 	for _, grKey := range order {
-	// 		items := grouped[grKey]
-	// 		startCol := curCol
-	// 		endCol := startCol + len(items)*4 - 1
-	//
-	// 		// Row 1: group header
-	// 		startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
-	// 		endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
-	// 		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 			return err
-	// 		}
-	// 		if err := file.SetCellValue(sheetName, startCell, grKey); err != nil {
-	// 			return err
-	// 		}
-	// 		style, _ := file.NewStyle(&excelize.Style{Alignment: &excelize.Alignment{Horizontal: "center"}})
-	// 		_ = file.SetCellStyle(sheetName, startCell, endCell, style)
-	//
-	// 		for j, rc := range items {
-	// 			itemStart := startCol + j*4
-	// 			itemEnd := itemStart + 3
-	//
-	// 			// Row 2: item header
-	// 			startCell, _ := excelize.CoordinatesToCellName(itemStart, 2)
-	// 			endCell, _ := excelize.CoordinatesToCellName(itemEnd, 2)
-	// 			if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
-	// 				return err
-	// 			}
-	// 			if err := file.SetCellValue(sheetName, startCell, rc.Item); err != nil {
-	// 				return err
-	// 			}
-	//
-	// 			// Row 3: subheaders
-	// 			for k, sub := range []string{"CollectionDate", "Total", "Pending", "Paid"} {
-	// 				cell, _ := excelize.CoordinatesToCellName(itemStart+k, 3)
-	// 				if err := file.SetCellValue(sheetName, cell, sub); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 		}
-	// 		curCol = endCol + 1
-	// 	}
-	// }
-	//
-	// // --- Step 5.1: Pre-build status maps ---
-	// towerStatusMap := make(map[uuid.UUID]time.Time)
-	// for _, ts := range tower.ActivePaymentPlanRatioItems {
-	// 	if ts.PaymentPlanRatioItem != nil {
-	// 		towerStatusMap[ts.PaymentPlanRatioItem.Id] = ts.CreatedAt
-	// 	}
-	// }
-	// flatStatusMap := make(map[string]time.Time)
-	// for _, f := range tower.Flats {
-	// 	for _, fs := range f.ActivePaymentPlanRatioItems {
-	// 		if fs.PaymentPlanRatioItem != nil {
-	// 			key := f.Id.String() + "-" + fs.PaymentPlanRatioItem.Id.String()
-	// 			flatStatusMap[key] = fs.CreatedAt
-	// 		}
-	// 	}
-	// }
-	//
-	// // --- Step 6: Data rows ---
-	// rowIdx := 4
-	// for _, flat := range tower.Flats {
-	// 	baseFlat := []any{
-	// 		sheetName,
-	// 		flat.Name,
-	// 		flat.FloorNumber,
-	// 		flat.Facing,
-	// 		flat.SaleableArea.String(),
-	// 		flat.UnitType,
-	// 	}
-	//
-	// 	if flat.SaleDetail != nil {
-	// 		sale := flat.SaleDetail
-	// 		saleVals := []any{
-	// 			sale.SaleNumber,
-	// 			sale.TotalPrice.String(),
-	// 			sale.PaidAmount().String(),
-	// 			sale.Pending().String(),
-	// 		}
-	//
-	// 		var brokerVals []any
-	// 		if sale.Broker != nil {
-	// 			brokerVals = []any{sale.Broker.Name, sale.Broker.AadharNumber, sale.Broker.PanNumber}
-	// 		} else {
-	// 			brokerVals = []any{"-", "-", "-"}
-	// 		}
-	//
-	// 		// payment plan group + ratio
-	// 		var planVals []any
-	// 		if sale.PaymentPlanRatio != nil && sale.PaymentPlanRatio.PaymentPlanGroup != nil {
-	// 			planVals = []any{
-	// 				sale.PaymentPlanRatio.PaymentPlanGroup.Name,
-	// 				sale.PaymentPlanRatio.Ratio,
-	// 			}
-	// 		} else {
-	// 			planVals = []any{"-", "-"}
-	// 		}
-	//
-	// 		// Customers OR Company
-	// 		if len(sale.Customers) > 0 {
-	// 			for _, cust := range sale.Customers {
-	// 				custVals := []any{
-	// 					fmt.Sprintf("%s %s %s", cust.FirstName, cust.MiddleName, cust.LastName),
-	// 					cust.Email,
-	// 					cust.PhoneNumber,
-	// 					cust.PanNumber,
-	// 					cust.AadharNumber,
-	// 				}
-	// 				companyVals := []any{"-", "-", "-"}
-	// 				rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
-	// 				rowVals = append(rowVals, companyVals...)
-	//
-	// 				// Price breakdown values
-	// 				bdMap := make(map[string]string)
-	// 				for _, bd := range sale.PriceBreakdown {
-	// 					bdMap[bd.Summary] = bd.Total.String()
-	// 				}
-	// 				for _, summary := range priceBreakdownSummaries {
-	// 					if val, ok := bdMap[summary]; ok {
-	// 						rowVals = append(rowVals, val)
-	// 					} else {
-	// 						rowVals = append(rowVals, "-")
-	// 					}
-	// 				}
-	//
-	// 				// Payment plan ratio items with CollectionDate
-	// 				for _, rc := range uniqueRatios {
-	// 					var collectionDate string
-	// 					switch rc.Scope {
-	// 					case custom.SCOPE_SALE:
-	// 						collectionDate = sale.CreatedAt.Format("2006-01-02")
-	// 					case custom.SCOPE_TOWER:
-	// 						if dt, ok := towerStatusMap[rc.ID]; ok {
-	// 							collectionDate = dt.Format("2006-01-02")
-	// 						}
-	// 					case custom.SCOPE_FLAT:
-	// 						key := flat.Id.String() + "-" + rc.ID.String()
-	// 						if dt, ok := flatStatusMap[key]; ok {
-	// 							collectionDate = dt.Format("2006-01-02")
-	// 						}
-	// 					}
-	// 					if collectionDate == "" {
-	// 						collectionDate = "-"
-	// 					}
-	// 					rowVals = append(rowVals, collectionDate, "-", "-", "-")
-	// 				}
-	//
-	// 				for colIdx, val := range rowVals {
-	// 					cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
-	// 					if err := file.SetCellValue(sheetName, cell, val); err != nil {
-	// 						return err
-	// 					}
-	// 				}
-	// 				rowIdx++
-	// 			}
-	// 		} else if sale.CompanyCustomer != nil {
-	// 			custVals := []any{"-", "-", "-", "-", "-"}
-	// 			companyVals := []any{
-	// 				sale.CompanyCustomer.Name,
-	// 				sale.CompanyCustomer.CompanyPan,
-	// 				sale.CompanyCustomer.CompanyGst,
-	// 			}
-	// 			rowVals := append(append(append(baseFlat, saleVals...), brokerVals...), custVals...)
-	// 			rowVals = append(rowVals, companyVals...)
-	//
-	// 			// Price breakdown
-	// 			bdMap := make(map[string]string)
-	// 			for _, bd := range sale.PriceBreakdown {
-	// 				bdMap[bd.Summary] = bd.Total.String()
-	// 			}
-	// 			for _, summary := range priceBreakdownSummaries {
-	// 				if val, ok := bdMap[summary]; ok {
-	// 					rowVals = append(rowVals, val)
-	// 				} else {
-	// 					rowVals = append(rowVals, "-")
-	// 				}
-	// 			}
-	//
-	// 			// Payment plan ratio items with CollectionDate
-	// 			for _, rc := range uniqueRatios {
-	// 				var collectionDate string
-	// 				switch rc.Scope {
-	// 				case custom.SCOPE_SALE:
-	// 					collectionDate = sale.CreatedAt.Format("2006-01-02")
-	// 				case custom.SCOPE_TOWER:
-	// 					if dt, ok := towerStatusMap[rc.ID]; ok {
-	// 						collectionDate = dt.Format("2006-01-02")
-	// 					}
-	// 				case custom.SCOPE_FLAT:
-	// 					key := flat.Id.String() + "-" + rc.ID.String()
-	// 					if dt, ok := flatStatusMap[key]; ok {
-	// 						collectionDate = dt.Format("2006-01-02")
-	// 					}
-	// 				}
-	// 				if collectionDate == "" {
-	// 					collectionDate = "-"
-	// 				}
-	// 				rowVals = append(rowVals, collectionDate, "-", "-", "-")
-	// 			}
-	//
-	// 			for colIdx, val := range rowVals {
-	// 				cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
-	// 				if err := file.SetCellValue(sheetName, cell, val); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 			rowIdx++
-	// 		}
-	// 	} else {
-	// 		// Flat without sale
-	// 		emptySale := []any{"-", "-", "-", "-"}
-	// 		emptyBroker := []any{"-", "-", "-"}
-	// 		emptyCust := []any{"-", "-", "-", "-", "-"}
-	// 		emptyCompany := []any{"-", "-", "-"}
-	// 		rowVals := append(append(append(baseFlat, emptySale...), emptyBroker...), emptyCust...)
-	// 		rowVals = append(rowVals, emptyCompany...)
-	// 		for range priceBreakdownSummaries {
-	// 			rowVals = append(rowVals, "-")
-	// 		}
-	// 		for range uniqueRatios {
-	// 			rowVals = append(rowVals, "-", "-", "-", "-")
-	// 		}
-	// 		for colIdx, val := range rowVals {
-	// 			cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
-	// 			if err := file.SetCellValue(sheetName, cell, val); err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 		rowIdx++
-	// 	}
-	// }
-	//
-	// return nil
 }
 
 func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, error) {
