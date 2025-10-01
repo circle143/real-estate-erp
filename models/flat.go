@@ -19,6 +19,7 @@ const (
 	HeadingCustomer        = "Customer Details"
 	HeadingCompanyCustomer = "Company Customer Details"
 	HeadingPricebreakdown  = "Price Breakdown"
+	HeadingInstallment     = "Installment"
 )
 
 // Flat model
@@ -86,16 +87,11 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-					continue
-				}
-
-				if f.SaleDetail == nil {
+				} else if f.SaleDetail == nil {
 					row = append(row, "")
 					continue
-				}
-
-				// Sale
-				if strings.HasPrefix(parent, HeadingSale) {
+				} else if strings.HasPrefix(parent, HeadingSale) {
+					// sale
 					switch h.Heading {
 					case "ID":
 						row = append(row, f.SaleDetail.SaleNumber)
@@ -111,10 +107,8 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-				}
-
-				// Broker
-				if strings.HasPrefix(parent, HeadingBroker) {
+				} else if strings.HasPrefix(parent, HeadingBroker) {
+					// broker
 					switch h.Heading {
 					case "Name":
 						row = append(row, f.SaleDetail.Broker.Name)
@@ -125,10 +119,8 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-				}
-
-				// Payment Plan Info
-				if strings.HasPrefix(parent, HeadingPaymentPlan) {
+				} else if strings.HasPrefix(parent, HeadingPaymentPlan) {
+					// payment plan info
 					switch h.Heading {
 					case "Name":
 						row = append(row, f.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name)
@@ -137,10 +129,8 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-				}
-
-				// Customer
-				if strings.HasPrefix(parent, HeadingCustomer) {
+				} else if strings.HasPrefix(parent, HeadingCustomer) {
+					// customer
 					if len(f.SaleDetail.Customers) == 0 {
 						row = append(row, "")
 						continue
@@ -170,10 +160,8 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-				}
-
-				// Company Customer
-				if strings.HasPrefix(parent, HeadingCompanyCustomer) {
+				} else if strings.HasPrefix(parent, HeadingCompanyCustomer) {
+					// Company Customer
 					if f.SaleDetail.CompanyCustomer == nil {
 						row = append(row, "")
 						continue
@@ -195,11 +183,13 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					default:
 						row = append(row, "")
 					}
-				}
-
-				// price breakdown
-				if strings.HasPrefix(parent, HeadingPricebreakdown) {
+				} else if strings.HasPrefix(parent, HeadingPricebreakdown) {
+					// price breakdown
 					row = append(row, f.SaleDetail.PriceBreakdown.GetPriceFromSummary(h.Heading).String())
+				} else if strings.HasPrefix(parent, HeadingInstallment) {
+					// installment handling
+				} else {
+					row = append(row, "")
 				}
 			} else {
 				// Recursive for nested headers (Payment Plans, Installments, etc.)

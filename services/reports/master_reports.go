@@ -201,7 +201,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		}
 
 		baseHeaders = append(baseHeaders, models.Header{
-			Heading: "Installment",
+			Heading: models.HeadingInstallment,
 			Items:   installmentItems,
 		})
 	}
