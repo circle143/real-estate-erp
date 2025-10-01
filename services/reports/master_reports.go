@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"sort"
 	"strconv"
 	"time"
 
@@ -17,6 +16,11 @@ import (
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
+
+type header struct {
+	Heading string
+	Items   []header
+}
 
 type paymentPlanItemInfo struct {
 	ID          uuid.UUID
@@ -34,10 +38,26 @@ func (p paymentPlanInfo) getHeading() string {
 	return fmt.Sprintf("%s (%s)", p.Name, p.Ratio)
 }
 
-func (p paymentPlanInfo) getItems() []string {
-	items := make([]string, 0, len(p.Items))
+func (p paymentPlanInfo) getItems() []header {
+	items := make([]header, 0, len(p.Items))
 	for _, item := range p.Items {
-		items = append(items, item.Description)
+		items = append(items, header{
+			Heading: item.Description,
+			Items: []header{
+				header{
+					Heading: "Collection Date",
+				},
+				header{
+					Heading: "Total Amount",
+				},
+				header{
+					Heading: "Paid",
+				},
+				header{
+					Heading: "Pending",
+				},
+			},
+		})
 	}
 
 	return items
@@ -51,24 +71,67 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	}
 
 	// base headers
-	baseHeaders := map[string][]string{
-		"0Flat details": {
-			"Flat", "Floor", "Facing", "Saleable Area", "Unit Type", "Tower",
+	baseHeaders := []header{
+		{
+			Heading: "Flat details",
+			Items: []header{
+				{Heading: "Flat"},
+				{Heading: "Floor"},
+				{Heading: "Facing"},
+				{Heading: "Saleable Area"},
+				{Heading: "Unit Type"},
+				{Heading: "Tower"},
+			},
 		},
-		"1Sale Details": {
-			"ID", "Total Price", "Total Payable Amount", "Paid Amount", "Pending Amount",
+		{
+			Heading: "Sale Details",
+			Items: []header{
+				{Heading: "ID"},
+				{Heading: "Total Price"},
+				{Heading: "Total Payable Amount"},
+				{Heading: "Paid Amount"},
+				{Heading: "Pending Amount"},
+			},
 		},
-		"2Broker Details": {
-			"Name", "Aadhar", "PAN",
+		{
+			Heading: "Broker Details",
+			Items: []header{
+				{Heading: "Name"},
+				{Heading: "Aadhar"},
+				{Heading: "PAN"},
+			},
 		},
-		"3Payment Plan": {
-			"Name", "Ratio",
+		{
+			Heading: "Payment Plan",
+			Items: []header{
+				{Heading: "Name"},
+				{Heading: "Ratio"},
+			},
 		},
-		"4Customer Details": {
-			"Name", "Gender", "Email", "Phone Number", "Nationality", "Aadhar", "PAN", "Passport Number", "Profession", "Company Name",
+		{
+			Heading: "Customer Details",
+			Items: []header{
+				{Heading: "Name"},
+				{Heading: "Gender"},
+				{Heading: "Email"},
+				{Heading: "Phone Number"},
+				{Heading: "Nationality"},
+				{Heading: "Aadhar"},
+				{Heading: "PAN"},
+				{Heading: "Passport Number"},
+				{Heading: "Profession"},
+				{Heading: "Company Name"},
+			},
 		},
-		"5Company Customer Details": {
-			"Name", "Company PAN", "GST", "Aadhar", "PAN",
+		{
+			Heading: "Company Customer Details",
+			Items: []header{
+				{Heading: "Name"},
+				{Heading: "Company PAN"},
+				{Heading: "GST"},
+				{Heading: "Aadhar"},
+				{Heading: "PAN"},
+			},
 		},
 	}
 
@@ -81,18 +144,20 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			}
 		}
 	}
-	salePriceBreakDownSlice := make([]string, 0, len(salePriceBreakdown))
+	salePriceBreakDownSlice := make([]header, 0, len(salePriceBreakdown))
 	for breakdownItem := range salePriceBreakdown {
-		salePriceBreakDownSlice = append(salePriceBreakDownSlice, breakdownItem)
+		salePriceBreakDownSlice = append(salePriceBreakDownSlice, header{
+			Heading: breakdownItem,
+		})
 	}
-	sort.Strings(salePriceBreakDownSlice)
 
 	// add to baseHeaders
-	priceBreakdownKey := fmt.Sprintf("%dPrice Breakdown", len(baseHeaders))
-	baseHeaders[priceBreakdownKey] = salePriceBreakDownSlice
+	baseHeaders = append(baseHeaders, header{
+		Heading: "Price Breakdown",
+		Items:   salePriceBreakDownSlice,
+	})
 
 	// get unique payment plans
-
 	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
 	for _, flat := range tower.Flats {
 		if flat.SaleDetail != nil {
@@ -118,8 +183,10 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 
 	// add to baseHeaders
 	for _, item := range paymentPlanDetails {
-		headerKey := fmt.Sprintf("%d%s", len(baseHeaders), item.getHeading())
-		baseHeaders[headerKey] = item.getItems()
+		baseHeaders = append(baseHeaders, header{
+			Heading: item.getHeading(),
+			Items:   item.getItems(),
+		})
 	}
 
 	// get max valid installment number
@@ -132,53 +199,126 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 
 	if installmentCount > 0 {
 		// add installment header
-		installmentHeaderKey := fmt.Sprintf("%dInstallment", len(baseHeaders))
-		installmentItems := make([]string, 0, installmentCount)
+		installmentItems := make([]header, 0, installmentCount)
 
 		for i := 1; i <= installmentCount; i++ {
-			installmentItems = append(installmentItems, strconv.Itoa(i))
+			installmentItems = append(installmentItems, header{
+				Heading: strconv.Itoa(i),
+				Items: []header{
+					header{
+						Heading: "Date",
+					},
+					header{
+						Heading: "Amount",
+					},
+					header{
+						Heading: "Type",
+					},
+					header{
+						Heading: "Status",
+					},
+				},
+			})
 		}
 
-		baseHeaders[installmentHeaderKey] = installmentItems
+		baseHeaders = append(baseHeaders, header{
+			Heading: "Installment",
+			Items:   installmentItems,
+		})
 	}
 
-	// add headers
+	// Create a style for centered, bold headers
+	style, err := file.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+	})
+	if err != nil {
+		return err
+	}
+
+	maxDepth := getMaxDepth(baseHeaders, 1)
 	colIndex := 1
 
-	// header slice for order
-	baseHeadersKeys := make([]string, 0, len(baseHeaders))
-	for key := range baseHeaders {
-		baseHeadersKeys = append(baseHeadersKeys, key)
+	_, err = renderHeaders(file, sheet, baseHeaders, 1, &colIndex, maxDepth, style)
+	if err != nil {
+		return err
 	}
-	sort.Strings(baseHeadersKeys)
 
-	// insert to sheet
-	for _, parent := range baseHeadersKeys {
-		children := baseHeaders[parent]
-		startCol := colIndex
-		for _, child := range children {
-			colName, colNameErr := excelize.ColumnNumberToName(colIndex)
-			if colNameErr != nil {
-				return colNameErr
-			}
-
-			cell := fmt.Sprintf("%s2", colName) // second row for child headers
-			file.SetCellValue(sheet, cell, child)
-			colIndex++
-		}
-
-		endCol := colIndex - 1
-
-		// Merge cells for parent header (row 1)
-		startColName, _ := excelize.ColumnNumberToName(startCol)
-		endColName, _ := excelize.ColumnNumberToName(endCol)
-		if err := file.MergeCell(sheet, fmt.Sprintf("%s1", startColName), fmt.Sprintf("%s1", endColName)); err != nil {
-			return err
-		}
-		file.SetCellValue(sheet, fmt.Sprintf("%s1", startColName), parent[1:])
+	for i := 1; i < colIndex; i++ {
+		colName, _ := excelize.ColumnNumberToName(i)
+		maxWidth := getMaxColumnWidth(file, sheet, colName, maxDepth)
+		file.SetColWidth(sheet, colName, colName, maxWidth)
 	}
 
 	return nil
+}
+
+// Helper: find max string length in a column
+func getMaxColumnWidth(f *excelize.File, sheet, col string, maxRow int) float64 {
+	maxLen := 0
+	for row := 1; row <= maxRow; row++ {
+		cell := fmt.Sprintf("%s%d", col, row)
+		val, _ := f.GetCellValue(sheet, cell)
+		if len(val) > maxLen {
+			maxLen = len(val)
+		}
+	}
+	// Multiply by 1.2 for padding
+	return float64(maxLen) * 1.2
+}
+
+// Recursive function to render headers
+func renderHeaders(f *excelize.File, sheet string, headers []header, row int, colIndex *int, maxDepth int, style int) (int, error) {
+	for _, h := range headers {
+		startCol := *colIndex
+		if len(h.Items) > 0 {
+			// Has children → render recursively
+			_, err := renderHeaders(f, sheet, h.Items, row+1, colIndex, maxDepth, style)
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			*colIndex++ // leaf header occupies one column
+		}
+		endCol := *colIndex - 1
+
+		// Merge horizontally if more than one column
+		startColName, _ := excelize.ColumnNumberToName(startCol)
+		endColName, _ := excelize.ColumnNumberToName(endCol)
+		if endCol > startCol {
+			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", endColName, row)); err != nil {
+				return 0, err
+			}
+		}
+
+		// Merge vertically if leaf header but not at max depth
+		if len(h.Items) == 0 && row < maxDepth {
+			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", startColName, maxDepth)); err != nil {
+				return 0, err
+			}
+		}
+
+		// Set header value and style
+		cell := fmt.Sprintf("%s%d", startColName, row)
+		f.SetCellValue(sheet, cell, h.Heading)
+		f.SetCellStyle(sheet, cell, cell, style)
+	}
+
+	return *colIndex, nil
+}
+
+// Helper: calculate max depth of nested headers
+func getMaxDepth(headers []header, depth int) int {
+	max := depth
+	for _, h := range headers {
+		if len(h.Items) > 0 {
+			d := getMaxDepth(h.Items, depth+1)
+			if d > max {
+				max = d
+			}
+		}
+	}
+	return max
 }
 
 func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
