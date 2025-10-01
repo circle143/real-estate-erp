@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,6 +44,7 @@ type Flat struct {
 }
 
 type Header struct {
+	ID      uuid.UUID // used for payment plan only
 	Heading string
 	Items   []Header
 }
@@ -65,10 +67,11 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 	var row []string
 
 	// Recursive helper to flatten headers and fetch values
-	var fill func(hs []Header, parent string)
-	fill = func(hs []Header, parent string) {
+	var fill func(hs []Header, parent string, level int)
+	fill = func(hs []Header, parent string, level int) {
 		for _, h := range hs {
-			if len(h.Items) == 0 {
+			// if leaf or level is 1
+			if level == 1 || len(h.Items) == 0 {
 				// Flat
 				if strings.HasPrefix(parent, HeadingFlat) {
 					switch h.Heading {
@@ -188,10 +191,34 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 					row = append(row, f.SaleDetail.PriceBreakdown.GetPriceFromSummary(h.Heading).String())
 				} else if strings.HasPrefix(parent, HeadingInstallment) {
 					// installment handling
+					receipts := f.SaleDetail.Receipts
+
+					// curent heading will be installment number, installment has 4 sub heading
+					ind, convErr := strconv.Atoi(h.Heading)
+					if convErr != nil ||
+						// check if receipt is present
+						len(receipts) < ind {
+						row = append(row, make([]string, 6)...)
+						continue
+					}
+
+					requiredReceipt := receipts[ind-1]
+					row = append(row, requiredReceipt.ReceiptNumber)
+					row = append(row, formatDateTimeAMPM(requiredReceipt.CreatedAt))
+					row = append(row, requiredReceipt.TotalAmount.String())
+					row = append(row, string(requiredReceipt.Mode))
+					row = append(row, requiredReceipt.GetReceiptStatus())
+					if requiredReceipt.Cleared != nil {
+						row = append(row, formatDateTimeAMPM(requiredReceipt.Cleared.CreatedAt))
+					} else {
+						row = append(row, "")
+					}
 				} else {
-					row = append(row, "")
+					// this is payment plan row
+					count := len(h.Items)
+					row = append(row, make([]string, max(1, count))...)
 				}
-			} else {
+			} else if len(h.Items) > 0 {
 				// Recursive for nested headers (Payment Plans, Installments, etc.)
 				nextParent := parent
 				if parent == "" {
@@ -199,12 +226,12 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 				} else {
 					nextParent = fmt.Sprintf("%s-%s", parent, h.Heading)
 				}
-				fill(h.Items, nextParent)
+				fill(h.Items, nextParent, level+1)
 			}
 		}
 	}
 
-	fill(headers, "")
+	fill(headers, "", 0)
 	for i, v := range row {
 		if strings.TrimSpace(v) == "" {
 			row[i] = "-"
@@ -213,4 +240,8 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 
 	print.Print(row)
 	return row
+}
+
+func formatDateTimeAMPM(t time.Time) string {
+	return t.Format("02-01-2006 03:04 PM") // dd-mm-yyyy hh:mm AM/PM
 }

@@ -171,6 +171,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	// add to basemodels.Headers
 	for _, item := range paymentPlanDetails {
 		baseHeaders = append(baseHeaders, models.Header{
+			ID:      item.ID,
 			Heading: item.getHeading(),
 			Items:   item.getItems(),
 		})
@@ -192,10 +193,12 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			installmentItems = append(installmentItems, models.Header{
 				Heading: strconv.Itoa(i),
 				Items: []models.Header{
+					{Heading: "Number"},
 					{Heading: "Date"},
 					{Heading: "Amount"},
 					{Heading: "Type"},
 					{Heading: "Status"},
+					{Heading: "Cleared At"},
 				},
 			})
 		}
