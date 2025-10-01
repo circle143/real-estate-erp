@@ -44,18 +44,10 @@ func (p paymentPlanInfo) getItems() []header {
 		items = append(items, header{
 			Heading: item.Description,
 			Items: []header{
-				header{
-					Heading: "Collection Date",
-				},
-				header{
-					Heading: "Total Amount",
-				},
-				header{
-					Heading: "Paid",
-				},
-				header{
-					Heading: "Pending",
-				},
+				{Heading: "Collection Date"},
+				{Heading: "Total Amount"},
+				{Heading: "Paid"},
+				{Heading: "Pending"},
 			},
 		})
 	}
@@ -205,18 +197,10 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			installmentItems = append(installmentItems, header{
 				Heading: strconv.Itoa(i),
 				Items: []header{
-					header{
-						Heading: "Date",
-					},
-					header{
-						Heading: "Amount",
-					},
-					header{
-						Heading: "Type",
-					},
-					header{
-						Heading: "Status",
-					},
+					{Heading: "Date"},
+					{Heading: "Amount"},
+					{Heading: "Type"},
+					{Heading: "Status"},
 				},
 			})
 		}
