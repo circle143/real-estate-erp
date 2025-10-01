@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"circledigital.in/real-state-erp/utils/custom"
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 )
@@ -38,17 +39,29 @@ func (u Sale) GetCreatedAt() time.Time {
 }
 
 func (u Sale) Pending() decimal.Decimal {
-	return u.TotalPrice.Sub(u.PaidAmount())
+	return u.TotalAmountPayable().Sub(u.PaidAmount())
 }
 
 func (u Sale) PaidAmount() decimal.Decimal {
 	sum := decimal.Zero
 
 	for _, receipt := range u.Receipts {
-		if receipt.Cleared != nil {
+		if receipt.Mode != custom.ADJUSTMENT && receipt.Cleared != nil {
 			sum = sum.Add(receipt.TotalAmount)
 		}
 	}
 
 	return sum
+}
+
+func (u Sale) TotalAmountPayable() decimal.Decimal {
+	payableAmount := u.TotalPrice
+
+	for _, receipt := range u.Receipts {
+		if receipt.Mode == custom.ADJUSTMENT {
+			payableAmount = payableAmount.Add(receipt.TotalAmount)
+		}
+	}
+
+	return payableAmount
 }
