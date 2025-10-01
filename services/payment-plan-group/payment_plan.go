@@ -16,6 +16,7 @@ func CreatePaymentPlanService(app common.IApp) common.IService {
 }
 
 type paymentPlanRatioItem struct {
+	Description    string  `validate:"required"`
 	Ratio          float64 `validate:"required,gt=0,lte=100"`
 	Scope          string  `validate:"required"`
 	ConditionType  string  `validate:"required"`

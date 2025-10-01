@@ -18,7 +18,7 @@ type Sale struct {
 	BrokerId           uuid.UUID             `gorm:"not null;index" json:"brokerId"`
 	Broker             *Broker               `gorm:"foreignKey:BrokerId;not null;constraint:OnUpdate:CASCADE" json:"broker,omitempty"`
 	PaymentPlanRatioId uuid.UUID             `json:"paymentPlanRatioId"`
-	PaymentPlanRatio   *PaymentPlanRatio     `gorm:"foreignKey:PaymentPlanRatioId" json:"PaymentPlanRatio"`
+	PaymentPlanRatio   *PaymentPlanRatio     `gorm:"foreignKey:PaymentPlanRatioId;constraint:OnUpdate:CASCADE" json:"PaymentPlanRatio"`
 	TotalPrice         decimal.Decimal       `gorm:"not null;type:numeric" json:"totalPrice"`
 	Paid               *decimal.Decimal      `gorm:"-" json:"paid,omitempty"` // used to compute paid amount during req lifecycle
 	Remaining          *decimal.Decimal      `gorm:"-" json:"remaining,omitempty"`

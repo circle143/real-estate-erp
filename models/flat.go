@@ -24,7 +24,7 @@ type Flat struct {
 	CreatedAt                   time.Time           `gorm:"autoCreateTime" json:"createdAt"`
 	UpdatedAt                   time.Time           `gorm:"autoUpdateTime" json:"updatedAt"`
 	SaleDetail                  *Sale               `gorm:"foreignKey:FlatId" json:"saleDetail,omitempty"`
-	ActivePaymentPlanRatioItems []FlatPaymentStatus `gorm:"-" json:"-"`
+	ActivePaymentPlanRatioItems []FlatPaymentStatus `gorm:"foreignKey:FlatId" json:"-"`
 	//DeletedAt   gorm.DeletedAt `gorm:"index"`
 }
 

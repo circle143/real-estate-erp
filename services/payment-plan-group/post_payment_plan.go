@@ -99,6 +99,7 @@ func (h *hCreatePaymentPlan) execute(db *gorm.DB, orgId, society string) (*model
 
 			items[j] = models.PaymentPlanRatioItem{
 				Ratio:          fmt.Sprintf("%.2f", item.Ratio),
+				Description:    item.Description,
 				Scope:          custom.PaymentPlanItemScope(item.Scope),
 				ConditionType:  custom.PaymentPlanCondition(item.ConditionType),
 				ConditionValue: item.ConditionValue,

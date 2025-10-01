@@ -24,7 +24,7 @@ type Tower struct {
 	SoldFlats                   int64                `gorm:"-" json:"soldFlats"`
 	UnsoldFlats                 int64                `gorm:"-" json:"unsoldFlats"`
 	Flats                       []Flat               `gorm:"foreignKey:TowerId" json:"flats,omitempty"`
-	ActivePaymentPlanRatioItems []TowerPaymentStatus `gorm:"-" json:"-"`
+	ActivePaymentPlanRatioItems []TowerPaymentStatus `gorm:"foreignKey:TowerId" json:"-"`
 	//DeletedAt  gorm.DeletedAt `gorm:"index"`
 }
 

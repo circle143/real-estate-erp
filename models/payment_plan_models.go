@@ -37,6 +37,7 @@ type PaymentPlanRatioItem struct {
 	Id                 uuid.UUID                   `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	PaymentPlanRatioId uuid.UUID                   `gorm:"not null" json:"paymentPlanRatioId"`
 	PaymentPlanRatio   *PaymentPlanRatio           `gorm:"foreignKey:PaymentPlanRatioId" json:"PaymentPlanRatio"`
+	Description        string                      `json:"description"`
 	Ratio              string                      `gorm:"not null" json:"ratio"`
 	Scope              custom.PaymentPlanItemScope `gorm:"not null" json:"scope"`
 	ConditionType      custom.PaymentPlanCondition `gorm:"not null" json:"conditionType"`
