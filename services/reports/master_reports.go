@@ -238,7 +238,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		rowNum := startRow + i
 		values := flat.GetRowData(baseHeaders, sheet, models.SafePrint{
 			ShouldPrint: i == 0 && sheet == "A",
-		})
+		}, tower.ActivePaymentPlanRatioItems)
 		for colIdx, val := range values {
 			colName, _ := excelize.ColumnNumberToName(colIdx + 1)
 			cell := fmt.Sprintf("%s%d", colName, rowNum)

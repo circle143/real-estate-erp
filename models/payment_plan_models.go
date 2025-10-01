@@ -34,9 +34,9 @@ type PaymentPlanRatio struct {
 	UpdatedAt          time.Time              `gorm:"autoUpdateTime" json:"updatedAt"`
 }
 
-func (p PaymentPlanRatio) GetRatioAmountDetail(ratioID uuid.UUID, totalPayableAmount, remaining decimal.Decimal) (*Finance, *time.Time) {
+func (p PaymentPlanRatio) GetRatioAmountDetail(ratioID uuid.UUID, totalPayableAmount, remaining decimal.Decimal, activeFlatPaymentPlans []FlatPaymentStatus, activeTowerPaymentPlans []TowerPaymentStatus) (*Finance, *time.Time) {
 	for _, item := range p.Ratios {
-		if item.Id == ratioID {
+		if item.Id == ratioID && item.IsActive(activeFlatPaymentPlans, activeTowerPaymentPlans) {
 			// Found the matching item, calculate finance
 			return item.GetAmountDetails(totalPayableAmount, remaining), &item.CreatedAt
 		}
@@ -82,6 +82,34 @@ func (p PaymentPlanRatioItem) GetAmountDetails(totalPayableAmount, remaining dec
 	}
 }
 
-func (p PaymentPlanRatioItem) IsActive() bool {
-	return true
+func (p PaymentPlanRatioItem) IsActive(
+	activeFlatPaymentPlans []FlatPaymentStatus,
+	activeTowerPaymentPlans []TowerPaymentStatus,
+) bool {
+	now := time.Now()
+
+	switch p.Scope {
+	case custom.SCOPE_SALE:
+		switch p.ConditionType {
+		case custom.ONBOOKING:
+			return true
+		case custom.WITHINDAYS:
+			target := p.CreatedAt.AddDate(0, 0, p.ConditionValue)
+			return !now.Before(target) // active if current date >= created + days
+		}
+	case custom.SCOPE_FLAT:
+		for _, plan := range activeFlatPaymentPlans {
+			if plan.PaymentId == p.Id {
+				return true
+			}
+		}
+	case custom.SCOPE_TOWER:
+		for _, plan := range activeTowerPaymentPlans {
+			if plan.PaymentId == p.Id {
+				return true
+			}
+		}
+	}
+
+	return false
 }

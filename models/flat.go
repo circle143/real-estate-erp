@@ -63,7 +63,7 @@ func (p SafePrint) Print(s any) {
 	}
 }
 
-func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []string {
+func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, activeTowerPaymentPlans []TowerPaymentStatus) []string {
 	var row []string
 
 	totalPaidRemaining := decimal.Zero
@@ -221,11 +221,10 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 						row = append(row, "")
 					}
 				} else {
-					//TODO: update payment plan active detail here
 					// this is payment plan row
 					if f.SaleDetail.PaymentPlanRatioId == parentID {
 						// handle payment plan here
-						financeDetail, collectionDate := f.SaleDetail.PaymentPlanRatio.GetRatioAmountDetail(h.ID, totalPayableAmount, totalPaidRemaining)
+						financeDetail, collectionDate := f.SaleDetail.PaymentPlanRatio.GetRatioAmountDetail(h.ID, totalPayableAmount, totalPaidRemaining, f.ActivePaymentPlanRatioItems, activeTowerPaymentPlans)
 
 						if financeDetail != nil {
 							row = append(row, formatDateTime(*collectionDate))
@@ -261,7 +260,6 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint) []
 		}
 	}
 
-	print.Print(row)
 	return row
 }
 
