@@ -235,10 +235,13 @@ func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, er
 	var towerData []models.Tower
 	err := db.
 		Where("org_id = ? AND society_id = ?", orgId, society).
+		Preload("ActivePaymentPlanRatioItems").
 		Preload("Flats").
+		Preload("Flats.ActivePaymentPlanRatioItems").
 		Preload("Flats.SaleDetail").
 		Preload("Flats.SaleDetail.PaymentPlanRatio").
 		Preload("Flats.SaleDetail.PaymentPlanRatio.PaymentPlanGroup").
+		Preload("Flats.SaleDetail.PaymentPlanRatio.Ratios").
 		Preload("Flats.SaleDetail.Receipts").
 		Preload("Flats.SaleDetail.Receipts.Cleared").
 		Preload("Flats.SaleDetail.Broker").
