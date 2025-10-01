@@ -12,9 +12,35 @@ import (
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
+
+type paymentPlanItemInfo struct {
+	ID          uuid.UUID
+	Description string
+}
+
+type paymentPlanInfo struct {
+	ID    uuid.UUID
+	Name  string
+	Ratio string
+	Items []paymentPlanItemInfo
+}
+
+func (p paymentPlanInfo) getHeading() string {
+	return fmt.Sprintf("%s (%s)", p.Name, p.Ratio)
+}
+
+func (p paymentPlanInfo) getItems() []string {
+	items := make([]string, 0, len(p.Items))
+	for _, item := range p.Items {
+		items = append(items, item.Description)
+	}
+
+	return items
+}
 
 func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	sheet := tower.Name
@@ -63,6 +89,37 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	// add to baseHeaders
 	priceBreakdownKey := fmt.Sprintf("%dPrice Breakdown", len(baseHeaders))
 	baseHeaders[priceBreakdownKey] = salePriceBreakDownSlice
+
+	// get unique payment plans
+
+	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
+	for _, flat := range tower.Flats {
+		if flat.SaleDetail != nil {
+			ratioKey := flat.SaleDetail.PaymentPlanRatioId
+			ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
+
+			for _, ratioItem := range flat.SaleDetail.PaymentPlanRatio.Ratios {
+				ratioItems = append(ratioItems, paymentPlanItemInfo{
+					ID:          ratioItem.Id,
+					Description: ratioItem.Description,
+				})
+			}
+
+			paymentPlanDetails[ratioKey] = paymentPlanInfo{
+				ID:    ratioKey,
+				Name:  flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name,
+				Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
+				Items: ratioItems,
+			}
+
+		}
+	}
+
+	// add to baseHeaders
+	for _, item := range paymentPlanDetails {
+		headerKey := fmt.Sprintf("%d%s", len(baseHeaders), item.getHeading())
+		baseHeaders[headerKey] = item.getItems()
+	}
 
 	// add headers
 	colIndex := 1
