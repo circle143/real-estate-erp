@@ -65,3 +65,7 @@ func (u Sale) TotalAmountPayable() decimal.Decimal {
 
 	return payableAmount
 }
+
+func (u Sale) GetValidReceiptsCount() int {
+	return len(u.Receipts)
+}
