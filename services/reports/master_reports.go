@@ -6,11 +6,13 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"time"
 
 	"circledigital.in/real-state-erp/models"
 	"circledigital.in/real-state-erp/utils/custom"
 	"circledigital.in/real-state-erp/utils/payload"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
@@ -35,7 +37,7 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 	for summary := range summarySet {
 		priceBreakdownSummaries = append(priceBreakdownSummaries, summary)
 	}
-	sort.Strings(priceBreakdownSummaries) // consistent column order
+	sort.Strings(priceBreakdownSummaries)
 
 	// --- Step 2: Base headers ---
 	baseHeaders := []string{
@@ -47,25 +49,26 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 		"CompanyName", "CompanyPan", "CompanyGst",
 	}
 
-	// --- Step 3: Write base headers in row 1 and merge down to row 2 ---
+	// --- Step 3: Write base headers merged over 3 rows ---
 	for i, h := range baseHeaders {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		if err := file.SetCellValue(sheetName, cell, h); err != nil {
 			return err
 		}
 		startCell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		endCell, _ := excelize.CoordinatesToCellName(i+1, 2)
+		endCell, _ := excelize.CoordinatesToCellName(i+1, 3)
 		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
 			return err
 		}
 	}
 
-	// --- Step 4: Add PriceBreakdown merged header + summaries ---
+	// --- Step 4: PriceBreakdown headers ---
+	curCol := len(baseHeaders) + 1
 	if len(priceBreakdownSummaries) > 0 {
-		startCol := len(baseHeaders) + 1
+		startCol := curCol
 		endCol := startCol + len(priceBreakdownSummaries) - 1
 
-		// Merge row 1 for "PriceBreakdown"
+		// Row 1 merged "PriceBreakdown"
 		startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
 		endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
 		if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
@@ -75,36 +78,111 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 			return err
 		}
 
-		// Create a centered bold style
-		styleID, err := file.NewStyle(&excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Font: &excelize.Font{
-				Bold: true,
-			},
-		})
-		if err != nil {
-			return err
-		}
-
-		// Apply style to merged range
-		if err := file.SetCellStyle(sheetName, startCell, endCell, styleID); err != nil {
-			return err
-		}
-
-		// Row 2: each summary name
+		// Each summary spans row 2 → row 3
 		for j, summary := range priceBreakdownSummaries {
 			cell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
 			if err := file.SetCellValue(sheetName, cell, summary); err != nil {
 				return err
 			}
+			startCell, _ := excelize.CoordinatesToCellName(startCol+j, 2)
+			endCell, _ := excelize.CoordinatesToCellName(startCol+j, 3)
+			if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+				return err
+			}
+		}
+		curCol = endCol + 1
+	}
+
+	// --- Step 5: PaymentPlanRatio headers ---
+	type ratioColumn struct {
+		Group string
+		Ratio string
+		Item  string
+		ID    uuid.UUID
+	}
+	var allRatios []ratioColumn
+	for _, flat := range tower.Flats {
+		if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
+			group := flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup
+			if group == nil {
+				continue
+			}
+			for _, item := range flat.SaleDetail.PaymentPlanRatio.Ratios {
+				allRatios = append(allRatios, ratioColumn{
+					Group: group.Name,
+					Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
+					Item:  item.Description,
+					ID:    item.Id,
+				})
+			}
+		}
+	}
+	// Deduplicate
+	seen := make(map[uuid.UUID]struct{})
+	var uniqueRatios []ratioColumn
+	for _, rc := range allRatios {
+		key := rc.ID
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			uniqueRatios = append(uniqueRatios, rc)
 		}
 	}
 
-	// --- Step 5: Data rows (start from row 3 now) ---
-	rowIdx := 3
+	if len(uniqueRatios) > 0 {
+		// Group by Group+Ratio
+		grouped := make(map[string][]ratioColumn)
+		var order []string
+		for _, rc := range uniqueRatios {
+			key := rc.Group + " - " + rc.Ratio
+			if _, ok := grouped[key]; !ok {
+				order = append(order, key)
+			}
+			grouped[key] = append(grouped[key], rc)
+		}
+
+		for _, grKey := range order {
+			items := grouped[grKey]
+			startCol := curCol
+			endCol := startCol + len(items)*4 - 1
+
+			// Row 1: group header
+			startCell, _ := excelize.CoordinatesToCellName(startCol, 1)
+			endCell, _ := excelize.CoordinatesToCellName(endCol, 1)
+			if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+				return err
+			}
+			if err := file.SetCellValue(sheetName, startCell, grKey); err != nil {
+				return err
+			}
+
+			for j, rc := range items {
+				itemStart := startCol + j*4
+				itemEnd := itemStart + 3
+
+				// Row 2: item header
+				startCell, _ := excelize.CoordinatesToCellName(itemStart, 2)
+				endCell, _ := excelize.CoordinatesToCellName(itemEnd, 2)
+				if err := file.MergeCell(sheetName, startCell, endCell); err != nil {
+					return err
+				}
+				if err := file.SetCellValue(sheetName, startCell, rc.Item); err != nil {
+					return err
+				}
+
+				// Row 3: subheaders
+				for k, sub := range []string{"CollectionDate", "Total", "Pending", "Paid"} {
+					cell, _ := excelize.CoordinatesToCellName(itemStart+k, 3)
+					if err := file.SetCellValue(sheetName, cell, sub); err != nil {
+						return err
+					}
+				}
+			}
+			curCol = endCol + 1
+		}
+	}
+
+	// --- Step 6: Data rows ---
+	rowIdx := 4
 	for _, flat := range tower.Flats {
 		baseFlat := []any{
 			sheetName,
@@ -117,7 +195,6 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 
 		if flat.SaleDetail != nil {
 			sale := flat.SaleDetail
-
 			saleVals := []any{
 				sale.SaleNumber,
 				sale.TotalPrice.String(),
@@ -127,15 +204,12 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 
 			var brokerVals []any
 			if sale.Broker != nil {
-				brokerVals = []any{
-					sale.Broker.Name,
-					sale.Broker.AadharNumber,
-					sale.Broker.PanNumber,
-				}
+				brokerVals = []any{sale.Broker.Name, sale.Broker.AadharNumber, sale.Broker.PanNumber}
 			} else {
 				brokerVals = []any{"-", "-", "-"}
 			}
 
+			// payment plan group + ratio
 			var planVals []any
 			if sale.PaymentPlanRatio != nil && sale.PaymentPlanRatio.PaymentPlanGroup != nil {
 				planVals = []any{
@@ -146,13 +220,7 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 				planVals = []any{"-", "-"}
 			}
 
-			// map summary → total
-			breakdownMap := make(map[string]string)
-			for _, bd := range sale.PriceBreakdown {
-				breakdownMap[bd.Summary] = bd.Total.String()
-			}
-
-			// Customers
+			// Customers OR Company
 			if len(sale.Customers) > 0 {
 				for _, cust := range sale.Customers {
 					custVals := []any{
@@ -166,13 +234,22 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 					rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
 					rowVals = append(rowVals, companyVals...)
 
-					// add breakdown totals
+					// Price breakdown values
+					bdMap := make(map[string]string)
+					for _, bd := range sale.PriceBreakdown {
+						bdMap[bd.Summary] = bd.Total.String()
+					}
 					for _, summary := range priceBreakdownSummaries {
-						if val, ok := breakdownMap[summary]; ok {
+						if val, ok := bdMap[summary]; ok {
 							rowVals = append(rowVals, val)
 						} else {
 							rowVals = append(rowVals, "-")
 						}
+					}
+
+					// Payment plan ratio items (placeholder values for now)
+					for range uniqueRatios {
+						rowVals = append(rowVals, "-", "-", "-", "-")
 					}
 
 					for colIdx, val := range rowVals {
@@ -190,15 +267,27 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 					sale.CompanyCustomer.CompanyPan,
 					sale.CompanyCustomer.CompanyGst,
 				}
-				rowVals := append(append(append(append(baseFlat, saleVals...), brokerVals...), planVals...), custVals...)
+				rowVals := append(append(append(baseFlat, saleVals...), brokerVals...), custVals...)
 				rowVals = append(rowVals, companyVals...)
+
+				// Price breakdown
+				bdMap := make(map[string]string)
+				for _, bd := range sale.PriceBreakdown {
+					bdMap[bd.Summary] = bd.Total.String()
+				}
 				for _, summary := range priceBreakdownSummaries {
-					if val, ok := breakdownMap[summary]; ok {
+					if val, ok := bdMap[summary]; ok {
 						rowVals = append(rowVals, val)
 					} else {
 						rowVals = append(rowVals, "-")
 					}
 				}
+
+				// Payment plan ratio items (placeholders)
+				for range uniqueRatios {
+					rowVals = append(rowVals, "-", "-", "-", "-")
+				}
+
 				for colIdx, val := range rowVals {
 					cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
 					if err := file.SetCellValue(sheetName, cell, val); err != nil {
@@ -208,16 +297,18 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 				rowIdx++
 			}
 		} else {
-			// flat without sale
-			emptySale := []any{"-", "-"}
+			// Flat without sale
+			emptySale := []any{"-", "-", "-", "-"}
 			emptyBroker := []any{"-", "-", "-"}
-			emptyPlan := []any{"-", "-"}
 			emptyCust := []any{"-", "-", "-", "-", "-"}
 			emptyCompany := []any{"-", "-", "-"}
-			rowVals := append(append(append(append(baseFlat, emptySale...), emptyBroker...), emptyPlan...), emptyCust...)
+			rowVals := append(append(append(baseFlat, emptySale...), emptyBroker...), emptyCust...)
 			rowVals = append(rowVals, emptyCompany...)
 			for range priceBreakdownSummaries {
 				rowVals = append(rowVals, "-")
+			}
+			for range uniqueRatios {
+				rowVals = append(rowVals, "-", "-", "-", "-")
 			}
 			for colIdx, val := range rowVals {
 				cell, _ := excelize.CoordinatesToCellName(colIdx+1, rowIdx)
@@ -231,6 +322,7 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 
 	return nil
 }
+
 func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, error) {
 	var towerData []models.Tower
 	err := db.
@@ -306,7 +398,7 @@ func (s *reportService) generateMasterReport(w http.ResponseWriter, r *http.Requ
 	// Set headers so browser/download tools recognize it as Excel
 	w.Header().Set("Content-Type",
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s_master_report.xlsx", societyRera))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s_master_report_%d.xlsx", societyRera, time.Now().Unix()))
 	w.Header().Set("Content-Length", fmt.Sprint(report.Len()))
 
 	// Write to response
