@@ -148,7 +148,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	// get unique payment plans
 	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
 	for _, flat := range tower.Flats {
-		if flat.SaleDetail != nil {
+		if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
 			ratioKey := flat.SaleDetail.PaymentPlanRatioId
 			ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
 

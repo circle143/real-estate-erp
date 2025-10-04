@@ -97,7 +97,7 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 					default:
 						row = append(row, "")
 					}
-				} else if f.SaleDetail == nil {
+				} else if f.SaleDetail == nil || f.SaleDetail.PaymentPlanRatio == nil {
 					row = append(row, "")
 					continue
 				} else if strings.HasPrefix(parent, HeadingSale) {
