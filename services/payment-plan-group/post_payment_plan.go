@@ -1,6 +1,7 @@
 package payment_plan_group
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -167,6 +168,12 @@ func (h *hMarkPaymentPlanActiveForTower) validate(db *gorm.DB, orgId, society, p
 	// validate that this payment item is scoped for TOWER
 	var item models.PaymentPlanRatioItem
 	if err := db.First(&item, "id = ?", paymentUUID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &custom.RequestError{
+				Status:  http.StatusNotFound,
+				Message: "Invalid payment plan item.",
+			}
+		}
 		return err
 	}
 
@@ -239,6 +246,12 @@ func (h *hMarkPaymentPlanActiveForFlat) validate(db *gorm.DB, orgId, society, pa
 	// validate that this payment item is scoped for FLAT
 	var item models.PaymentPlanRatioItem
 	if err := db.First(&item, "id = ?", paymentUUID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return &custom.RequestError{
+				Status:  http.StatusNotFound,
+				Message: "Invalid payment plan item.",
+			}
+		}
 		return err
 	}
 
