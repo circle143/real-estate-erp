@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -349,16 +348,7 @@ func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, er
 		}
 	}
 
-	var reportFile *excelize.File = nil
-	if os.Getenv("ENV") == "development" {
-		reportFile = excelize.NewFile()
-	} else {
-		reportFile = excelize.NewFile(
-			excelize.Options{
-				Password: society,
-			},
-		)
-	}
+	reportFile := excelize.NewFile()
 
 	for _, tower := range towerData {
 		sheetErr := newMasterReportSheet(reportFile, tower)
