@@ -71,16 +71,6 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			},
 		},
 		{
-			Heading: models.HeadingSale,
-			Items: []models.Header{
-				// {Heading: "ID"},
-				{Heading: "Total Price"},
-				{Heading: "Total Payable Amount"},
-				{Heading: "Paid Amount"},
-				{Heading: "Pending Amount"},
-			},
-		},
-		{
 			Heading: models.HeadingPaymentPlan,
 			Items: []models.Header{
 				{Heading: "Name"},
@@ -108,14 +98,6 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 				{Heading: "Name"},
 				{Heading: "Company PAN"},
 				{Heading: "GST"},
-				{Heading: "Aadhar"},
-				{Heading: "PAN"},
-			},
-		},
-		{
-			Heading: models.HeadingBroker,
-			Items: []models.Header{
-				{Heading: "Name"},
 				{Heading: "Aadhar"},
 				{Heading: "PAN"},
 			},
@@ -157,6 +139,30 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		Heading: models.HeadingPricebreakdown,
 		Items:   salePriceBreakDownSlice,
 	})
+
+	// add broker details
+	baseHeaders = append(baseHeaders,
+		[]models.Header{
+			{
+				Heading: models.HeadingSale,
+				Items: []models.Header{
+					// {Heading: "ID"},
+					{Heading: "Total Price"},
+					{Heading: "Total Payable Amount"},
+					{Heading: "Paid Amount"},
+					{Heading: "Pending Amount"},
+				},
+			},
+			{
+				Heading: models.HeadingBroker,
+				Items: []models.Header{
+					{Heading: "Name"},
+					{Heading: "Aadhar"},
+					{Heading: "PAN"},
+				},
+			},
+		}...,
+	)
 
 	// get unique payment plans
 	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
