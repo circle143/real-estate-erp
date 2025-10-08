@@ -222,7 +222,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 
 	headers := []models.Header{
 		{
-			Heading: "Customer Identification Number",
+			Heading: "Member ID",
 		},
 	}
 
