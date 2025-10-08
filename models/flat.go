@@ -44,7 +44,7 @@ type Flat struct {
 }
 
 type Header struct {
-	ID      uuid.UUID // used for payment plan only
+	ID      *uuid.UUID // used for payment plan only
 	Heading string
 	Items   []Header
 }
@@ -69,13 +69,16 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 	totalPaidRemaining := decimal.Zero
 	totalPayableAmount := decimal.Zero
 	if f.SaleDetail != nil {
+		row = append(row, f.SaleDetail.SaleNumber)
 		totalPaidRemaining = f.SaleDetail.PaidAmount()
 		totalPayableAmount = f.SaleDetail.GetTotalPayableAmount()
+	} else {
+		row = append(row, "")
 	}
 
 	// Recursive helper to flatten headers and fetch values
-	var fill func(hs []Header, parent string, level int, parentID uuid.UUID)
-	fill = func(hs []Header, parent string, level int, parentID uuid.UUID) {
+	var fill func(hs []Header, parent string, level int, parentID *uuid.UUID)
+	fill = func(hs []Header, parent string, level int, parentID *uuid.UUID) {
 		for _, h := range hs {
 			// if leaf or level is 1
 			if level == 1 || len(h.Items) == 0 {
@@ -222,9 +225,9 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 					}
 				} else {
 					// this is payment plan row
-					if f.SaleDetail.PaymentPlanRatioId == parentID {
+					if parentID != nil && f.SaleDetail.PaymentPlanRatioId == *parentID {
 						// handle payment plan here
-						financeDetail, collectionDate := f.SaleDetail.PaymentPlanRatio.GetRatioAmountDetail(h.ID, totalPayableAmount, totalPaidRemaining, f.ActivePaymentPlanRatioItems, activeTowerPaymentPlans)
+						financeDetail, collectionDate := f.SaleDetail.PaymentPlanRatio.GetRatioAmountDetail(*h.ID, totalPayableAmount, totalPaidRemaining, f.ActivePaymentPlanRatioItems, activeTowerPaymentPlans)
 
 						if financeDetail != nil {
 							row = append(row, formatDateTime(*collectionDate))
@@ -253,7 +256,7 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 		}
 	}
 
-	fill(headers, "", 0, uuid.Nil)
+	fill(headers, "", 0, nil)
 	for i, v := range row {
 		if strings.TrimSpace(v) == "" {
 			row[i] = "-"

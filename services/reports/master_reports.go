@@ -36,7 +36,7 @@ func (p paymentPlanInfo) getItems() []models.Header {
 	items := make([]models.Header, 0, len(p.Items))
 	for _, item := range p.Items {
 		items = append(items, models.Header{
-			ID:      item.ID,
+			ID:      &item.ID,
 			Heading: item.Description,
 			Items: []models.Header{
 				{Heading: "Collection Date"},
@@ -73,7 +73,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		{
 			Heading: models.HeadingSale,
 			Items: []models.Header{
-				{Heading: "ID"},
+				// {Heading: "ID"},
 				{Heading: "Total Price"},
 				{Heading: "Total Payable Amount"},
 				{Heading: "Paid Amount"},
@@ -170,7 +170,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	// add to basemodels.Headers
 	for _, item := range paymentPlanDetails {
 		baseHeaders = append(baseHeaders, models.Header{
-			ID:      item.ID,
+			ID:      &item.ID,
 			Heading: item.getHeading(),
 			Items:   item.getItems(),
 		})
@@ -220,7 +220,15 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 	maxDepth := getMaxDepth(baseHeaders, 1)
 	colIndex := 1
 
-	_, err = renderHeaders(file, sheet, baseHeaders, 1, &colIndex, maxDepth, style)
+	headers := []models.Header{
+		{
+			Heading: "Customer Identification Number",
+		},
+	}
+
+	headers = append(headers, baseHeaders...)
+
+	_, err = renderHeaders(file, sheet, headers, 1, &colIndex, maxDepth, style)
 	if err != nil {
 		return err
 	}
