@@ -62,12 +62,12 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		{
 			Heading: models.HeadingFlat,
 			Items: []models.Header{
-				{Heading: "Flat"},
-				{Heading: "Floor"},
-				{Heading: "Facing"},
-				{Heading: "Saleable Area"},
-				{Heading: "Unit Type"},
 				{Heading: "Tower"},
+				{Heading: "Floor"},
+				{Heading: "Flat"},
+				{Heading: "Facing"},
+				{Heading: "Unit Type"},
+				{Heading: "Saleable Area"},
 			},
 		},
 		{
