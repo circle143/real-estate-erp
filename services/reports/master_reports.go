@@ -122,20 +122,34 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		},
 	}
 
-	// get unique sale price breakdown values
-	salePriceBreakdown := make(map[string]bool)
+	// get unique sale price breakdown values while preserving order
+	salePriceBreakdownSet := make(map[string]bool)
+	salePriceBreakDownSlice := make([]models.Header, 0)
+	var ifmsHeader *models.Header
+
 	for _, flat := range tower.Flats {
 		if flat.SaleDetail != nil {
 			for _, priceBreakdownItem := range flat.SaleDetail.PriceBreakdown {
-				salePriceBreakdown[priceBreakdownItem.Summary] = true
+				summary := priceBreakdownItem.Summary
+				if !salePriceBreakdownSet[summary] {
+					salePriceBreakdownSet[summary] = true
+
+					if summary == "Intrest Free Maintenance Security (IFMS)" {
+						// defer adding IFMS until the end
+						ifmsHeader = &models.Header{Heading: summary}
+					} else {
+						salePriceBreakDownSlice = append(salePriceBreakDownSlice, models.Header{
+							Heading: summary,
+						})
+					}
+				}
 			}
 		}
 	}
-	salePriceBreakDownSlice := make([]models.Header, 0, len(salePriceBreakdown))
-	for breakdownItem := range salePriceBreakdown {
-		salePriceBreakDownSlice = append(salePriceBreakDownSlice, models.Header{
-			Heading: breakdownItem,
-		})
+
+	// finally, add IFMS at the end if it exists
+	if ifmsHeader != nil {
+		salePriceBreakDownSlice = append(salePriceBreakDownSlice, *ifmsHeader)
 	}
 
 	// add to basemodels.Headers
