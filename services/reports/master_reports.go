@@ -81,25 +81,17 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 			},
 		},
 		{
-			Heading: models.HeadingBroker,
-			Items: []models.Header{
-				{Heading: "Name"},
-				{Heading: "Aadhar"},
-				{Heading: "PAN"},
-			},
-		},
-		{
 			Heading: models.HeadingPaymentPlan,
 			Items: []models.Header{
 				{Heading: "Name"},
-				{Heading: "Ratio"},
+				// {Heading: "Ratio"},
 			},
 		},
 		{
 			Heading: models.HeadingCustomer,
 			Items: []models.Header{
 				{Heading: "Name"},
-				{Heading: "Gender"},
+				// {Heading: "Gender"},
 				{Heading: "Email"},
 				{Heading: "Phone Number"},
 				{Heading: "Nationality"},
@@ -116,6 +108,14 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 				{Heading: "Name"},
 				{Heading: "Company PAN"},
 				{Heading: "GST"},
+				{Heading: "Aadhar"},
+				{Heading: "PAN"},
+			},
+		},
+		{
+			Heading: models.HeadingBroker,
+			Items: []models.Header{
+				{Heading: "Name"},
 				{Heading: "Aadhar"},
 				{Heading: "PAN"},
 			},
