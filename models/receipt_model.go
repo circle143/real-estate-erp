@@ -40,6 +40,41 @@ func (r Receipt) GetCreatedAt() time.Time {
 	return r.CreatedAt
 }
 
+func (r Receipt) GetCGST() string {
+	if r.CGST == nil {
+		return ""
+	}
+	return r.CGST.String()
+}
+
+func (r Receipt) GetSGST() string {
+	if r.SGST == nil {
+		return ""
+	}
+	return r.SGST.String()
+}
+
+func (r Receipt) GetServiceTax() string {
+	if r.ServiceTax == nil {
+		return ""
+	}
+	return r.ServiceTax.String()
+}
+
+func (r Receipt) GetSwathchBharatCess() string {
+	if r.SwathchBharatCess == nil {
+		return ""
+	}
+	return r.SwathchBharatCess.String()
+}
+
+func (r Receipt) GetKrishiKalyanCess() string {
+	if r.KrishiKalyanCess == nil {
+		return ""
+	}
+	return r.KrishiKalyanCess.String()
+}
+
 func (r Receipt) GetReceiptStatus() string {
 	if r.Cleared != nil {
 		return "Cleared"

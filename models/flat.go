@@ -208,7 +208,7 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 					if convErr != nil ||
 						// check if receipt is present
 						len(receipts) < ind {
-						row = append(row, make([]string, 6)...)
+						row = append(row, make([]string, 11)...)
 						continue
 					}
 
@@ -217,6 +217,14 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 					row = append(row, formatDateTime(requiredReceipt.CreatedAt))
 					row = append(row, requiredReceipt.TotalAmount.String())
 					row = append(row, string(requiredReceipt.Mode))
+
+					// receipt tax
+					row = append(row, requiredReceipt.GetCGST())
+					row = append(row, requiredReceipt.GetSGST())
+					row = append(row, requiredReceipt.GetServiceTax())
+					row = append(row, requiredReceipt.GetSwathchBharatCess())
+					row = append(row, requiredReceipt.GetKrishiKalyanCess())
+
 					row = append(row, requiredReceipt.GetReceiptStatus())
 					if requiredReceipt.Cleared != nil {
 						row = append(row, formatDateTime(requiredReceipt.Cleared.CreatedAt))
