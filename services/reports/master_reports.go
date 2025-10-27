@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"circledigital.in/real-state-erp/models"
@@ -150,13 +151,19 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 					{Heading: "Total Price"},
 					{Heading: "Total Payable Amount"},
 					{Heading: "Total Paid Amount"},
-					{Heading: "Paid Amount"},
+					// {Heading: "Paid Amount"},
+					// {Heading: "CGST"},
+					// {Heading: "SGST"},
+					// {Heading: "Service Tax"},
+					// {Heading: "Swathch Bharat Cess"},
+					// {Heading: "Krishi Kalyan Cess"},
+					{Heading: "Paid Amount", Color: "yellow"},
+					{Heading: "CGST", Color: "yellow"},
+					{Heading: "SGST", Color: "yellow"},
+					{Heading: "Service Tax", Color: "yellow"},
+					{Heading: "Swathch Bharat Cess", Color: "yellow"},
+					{Heading: "Krishi Kalyan Cess", Color: "yellow"},
 					{Heading: "Pending Amount"},
-					{Heading: "CGST"},
-					{Heading: "SGST"},
-					{Heading: "Service Tax"},
-					{Heading: "Swathch Bharat Cess"},
-					{Heading: "Krishi Kalyan Cess"},
 				},
 			},
 			{
@@ -301,45 +308,142 @@ func getMaxColumnWidth(f *excelize.File, sheet, col string, maxRow int) float64 
 	return float64(min(maxLen, 15)) * 1.2
 }
 
-// Recursive function to render headers
-func renderHeaders(f *excelize.File, sheet string, headers []models.Header, row int, colIndex *int, maxDepth int, style int) (int, error) {
-	for _, h := range headers {
-		startCol := *colIndex
-		if len(h.Items) > 0 {
-			// Has children → render recursively
-			_, err := renderHeaders(f, sheet, h.Items, row+1, colIndex, maxDepth, style)
-			if err != nil {
-				return 0, err
-			}
-		} else {
-			*colIndex++ // leaf header occupies one column
-		}
-		endCol := *colIndex - 1
+func renderHeaders(f *excelize.File, sheet string, headers []models.Header, row int, colIndex *int, maxDepth int, baseStyle int) (int, error) {
+	// Cache to avoid recreating same color styles
+	styleCache := make(map[string]int)
 
-		// Merge horizontally if more than one column
-		startColName, _ := excelize.ColumnNumberToName(startCol)
-		endColName, _ := excelize.ColumnNumberToName(endCol)
-		if endCol > startCol {
-			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", endColName, row)); err != nil {
-				return 0, err
+	var applyHeader func([]models.Header, int, string) (int, error)
+	applyHeader = func(hs []models.Header, currentRow int, parent string) (int, error) {
+		for _, h := range hs {
+			startCol := *colIndex
+			if len(h.Items) > 0 {
+				// Recurse into nested headers
+				_, err := applyHeader(h.Items, currentRow+1, h.Heading)
+				if err != nil {
+					return 0, err
+				}
+			} else {
+				*colIndex++
 			}
-		}
+			endCol := *colIndex - 1
 
-		// Merge vertically if leaf header but not at max depth
-		if len(h.Items) == 0 && row < maxDepth {
-			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", startColName, maxDepth)); err != nil {
-				return 0, err
+			startColName, _ := excelize.ColumnNumberToName(startCol)
+			endColName, _ := excelize.ColumnNumberToName(endCol)
+
+			// Merge horizontally if needed
+			if endCol > startCol {
+				if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, currentRow),
+					fmt.Sprintf("%s%d", endColName, currentRow)); err != nil {
+					return 0, err
+				}
 			}
-		}
 
-		// Set header value and style
-		cell := fmt.Sprintf("%s%d", startColName, row)
-		f.SetCellValue(sheet, cell, h.Heading)
-		f.SetCellStyle(sheet, cell, cell, style)
+			// Merge vertically if not at max depth
+			if len(h.Items) == 0 && currentRow < maxDepth {
+				if err := f.MergeCell(sheet,
+					fmt.Sprintf("%s%d", startColName, currentRow),
+					fmt.Sprintf("%s%d", startColName, maxDepth)); err != nil {
+					return 0, err
+				}
+			}
+
+			cell := fmt.Sprintf("%s%d", startColName, currentRow)
+			f.SetCellValue(sheet, cell, h.Heading)
+
+			// Determine style
+			styleID := baseStyle
+			if h.Color != "" {
+				colorName := strings.ToLower(h.Color)
+
+				// Use cached style if available
+				if cached, ok := styleCache[colorName]; ok {
+					styleID = cached
+				} else {
+					colorHex := map[string]string{
+						"yellow": "#FFFF00",
+						"green":  "#00FF00",
+						"red":    "#FF0000",
+						"blue":   "#007BFF",
+						"gray":   "#D3D3D3",
+					}[colorName]
+					if colorHex == "" {
+						colorHex = h.Color // assume valid HEX like "#FFD700"
+					}
+
+					// Clone existing style and apply background fill
+					styleJSON, _ := f.GetStyle(baseStyle)
+					newStyle := *styleJSON // shallow copy
+
+					newStyle.Fill = excelize.Fill{
+						Type:    "pattern",
+						Color:   []string{colorHex},
+						Pattern: 1,
+					}
+
+					newStyle.Border = []excelize.Border{
+						{Type: "left", Color: "000000", Style: 1},
+						{Type: "right", Color: "000000", Style: 1},
+						{Type: "top", Color: "000000", Style: 1},
+						{Type: "bottom", Color: "000000", Style: 1},
+					}
+
+					newStyleID, err := f.NewStyle(&newStyle)
+					if err != nil {
+						return 0, err
+					}
+
+					styleCache[colorName] = newStyleID
+					styleID = newStyleID
+				}
+			}
+
+			f.SetCellStyle(sheet, cell, cell, styleID)
+		}
+		return *colIndex, nil
 	}
 
-	return *colIndex, nil
+	return applyHeader(headers, row, "")
 }
+
+// Recursive function to render headers
+// func renderHeaders(f *excelize.File, sheet string, headers []models.Header, row int, colIndex *int, maxDepth int, style int) (int, error) {
+// 	for _, h := range headers {
+// 		startCol := *colIndex
+// 		if len(h.Items) > 0 {
+// 			// Has children → render recursively
+// 			_, err := renderHeaders(f, sheet, h.Items, row+1, colIndex, maxDepth, style)
+// 			if err != nil {
+// 				return 0, err
+// 			}
+// 		} else {
+// 			*colIndex++ // leaf header occupies one column
+// 		}
+// 		endCol := *colIndex - 1
+//
+// 		// Merge horizontally if more than one column
+// 		startColName, _ := excelize.ColumnNumberToName(startCol)
+// 		endColName, _ := excelize.ColumnNumberToName(endCol)
+// 		if endCol > startCol {
+// 			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", endColName, row)); err != nil {
+// 				return 0, err
+// 			}
+// 		}
+//
+// 		// Merge vertically if leaf header but not at max depth
+// 		if len(h.Items) == 0 && row < maxDepth {
+// 			if err := f.MergeCell(sheet, fmt.Sprintf("%s%d", startColName, row), fmt.Sprintf("%s%d", startColName, maxDepth)); err != nil {
+// 				return 0, err
+// 			}
+// 		}
+//
+// 		// Set header value and style
+// 		cell := fmt.Sprintf("%s%d", startColName, row)
+// 		f.SetCellValue(sheet, cell, h.Heading)
+// 		f.SetCellStyle(sheet, cell, cell, style)
+// 	}
+//
+// 	return *colIndex, nil
+// }
 
 // Helper: calculate max depth of nested headers
 func getMaxDepth(headers []models.Header, depth int) int {
