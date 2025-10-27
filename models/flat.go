@@ -116,7 +116,20 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 						row = append(row, f.SaleDetail.PaidAmount().String())
 					case "Pending Amount":
 						row = append(row, f.SaleDetail.Pending().String())
+					case "CGST":
+						row = append(row, f.SaleDetail.GetTotalCGST())
 
+					case "SGST":
+						row = append(row, f.SaleDetail.GetTotalSGST())
+
+					case "Service Tax":
+						row = append(row, f.SaleDetail.GetTotalServiceTax())
+
+					case "Swathch Bharat Cess":
+						row = append(row, f.SaleDetail.GetTotalSwachhBharatCess())
+
+					case "Krishi Kalyan Cess":
+						row = append(row, f.SaleDetail.GetTotalKrishiKalyanCess())
 					default:
 						row = append(row, "")
 					}

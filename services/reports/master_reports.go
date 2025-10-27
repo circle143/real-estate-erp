@@ -151,6 +151,11 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 					{Heading: "Total Payable Amount"},
 					{Heading: "Paid Amount"},
 					{Heading: "Pending Amount"},
+					{Heading: "CGST"},
+					{Heading: "SGST"},
+					{Heading: "Service Tax"},
+					{Heading: "Swathch Bharat Cess"},
+					{Heading: "Krishi Kalyan Cess"},
 				},
 			},
 			{

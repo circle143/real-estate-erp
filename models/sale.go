@@ -69,3 +69,73 @@ func (u Sale) GetTotalPayableAmount() decimal.Decimal {
 func (u Sale) GetValidReceiptsCount() int {
 	return len(u.Receipts)
 }
+
+// GetTotalCGST returns the total CGST as a string ("" if no value)
+func (s Sale) GetTotalCGST() string {
+	total := decimal.Zero
+	for _, r := range s.Receipts {
+		if r.CGST != nil {
+			total = total.Add(*r.CGST)
+		}
+	}
+	if total.Equal(decimal.Zero) {
+		return ""
+	}
+	return total.String()
+}
+
+// GetTotalSGST returns the total SGST as a string ("" if no value)
+func (s Sale) GetTotalSGST() string {
+	total := decimal.Zero
+	for _, r := range s.Receipts {
+		if r.SGST != nil {
+			total = total.Add(*r.SGST)
+		}
+	}
+	if total.Equal(decimal.Zero) {
+		return ""
+	}
+	return total.String()
+}
+
+// GetTotalServiceTax returns the total Service Tax as a string ("" if no value)
+func (s Sale) GetTotalServiceTax() string {
+	total := decimal.Zero
+	for _, r := range s.Receipts {
+		if r.ServiceTax != nil {
+			total = total.Add(*r.ServiceTax)
+		}
+	}
+	if total.Equal(decimal.Zero) {
+		return ""
+	}
+	return total.String()
+}
+
+// GetTotalSwachhBharatCess returns the total Swachh Bharat Cess as a string ("" if no value)
+func (s Sale) GetTotalSwachhBharatCess() string {
+	total := decimal.Zero
+	for _, r := range s.Receipts {
+		if r.SwathchBharatCess != nil {
+			total = total.Add(*r.SwathchBharatCess)
+		}
+	}
+	if total.Equal(decimal.Zero) {
+		return ""
+	}
+	return total.String()
+}
+
+// GetTotalKrishiKalyanCess returns the total Krishi Kalyan Cess as a string ("" if no value)
+func (s Sale) GetTotalKrishiKalyanCess() string {
+	total := decimal.Zero
+	for _, r := range s.Receipts {
+		if r.KrishiKalyanCess != nil {
+			total = total.Add(*r.KrishiKalyanCess)
+		}
+	}
+	if total.Equal(decimal.Zero) {
+		return ""
+	}
+	return total.String()
+}
