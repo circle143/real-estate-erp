@@ -47,6 +47,7 @@ type Header struct {
 	ID      *uuid.UUID // used for payment plan only
 	Heading string
 	Items   []Header
+	Color   string
 }
 
 func (f Flat) GetCreatedAt() time.Time {
@@ -112,8 +113,31 @@ func (f Flat) GetRowData(headers []Header, towerName string, print SafePrint, ac
 						row = append(row, f.SaleDetail.TotalPrice.String())
 					case "Total Payable Amount":
 						row = append(row, f.SaleDetail.GetTotalPayableAmount().String())
-					case "Paid Amount":
+					case "Total Paid Amount":
 						row = append(row, f.SaleDetail.PaidAmount().String())
+					case "Paid Amount":
+						paid := f.SaleDetail.PaidAmount()
+
+						// Subtract all tax-related values if present
+						for _, r := range f.SaleDetail.Receipts {
+							if r.CGST != nil {
+								paid = paid.Sub(*r.CGST)
+							}
+							if r.SGST != nil {
+								paid = paid.Sub(*r.SGST)
+							}
+							if r.ServiceTax != nil {
+								paid = paid.Sub(*r.ServiceTax)
+							}
+							if r.SwathchBharatCess != nil {
+								paid = paid.Sub(*r.SwathchBharatCess)
+							}
+							if r.KrishiKalyanCess != nil {
+								paid = paid.Sub(*r.KrishiKalyanCess)
+							}
+						}
+
+						row = append(row, paid.String())
 					case "Pending Amount":
 						row = append(row, f.SaleDetail.Pending().String())
 					case "CGST":

@@ -149,6 +149,7 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 					// {Heading: "ID"},
 					{Heading: "Total Price"},
 					{Heading: "Total Payable Amount"},
+					{Heading: "Total Paid Amount"},
 					{Heading: "Paid Amount"},
 					{Heading: "Pending Amount"},
 					{Heading: "CGST"},
