@@ -358,10 +358,17 @@ func newMasterReportSheet(file *excelize.File, tower models.Tower) error {
 	return newMasterReportSheetManual(file, tower)
 }
 
-func generateMasterReport(db *gorm.DB, orgId, society string) (*bytes.Buffer, error) {
+func generateMasterReport(db *gorm.DB, orgId, society, tower string) (*bytes.Buffer, error) {
+
+	query := db.
+		Where("org_id = ? AND society_id = ?", orgId, society)
+
+	if tower != "" {
+		query = query.Where("name = ?", tower)
+	}
+
 	var towerData []models.Tower
-	err := db.
-		Where("org_id = ? AND society_id = ?", orgId, society).
+	err := query.
 		Preload("ActivePaymentPlanRatioItems").
 		Preload("Flats").
 		Preload("Flats.ActivePaymentPlanRatioItems").
@@ -414,17 +421,25 @@ func (s *reportService) generateMasterReport(w http.ResponseWriter, r *http.Requ
 	// get society rera and org id from request
 	orgId := r.Context().Value(custom.OrganizationIDKey).(string)
 	societyRera := chi.URLParam(r, "society")
+	tower := r.URL.Query().Get("tower")
 
-	report, err := generateMasterReport(s.db, orgId, societyRera)
+	report, err := generateMasterReport(s.db, orgId, societyRera, tower)
 	if err != nil {
 		payload.HandleError(w, err)
 		return
 	}
 
+	fileNameBase := societyRera
+	if tower != "" {
+		fileNameBase = fmt.Sprintf("tower_%s", tower)
+	}
+
 	// Set headers so browser/download tools recognize it as Excel
-	w.Header().Set("Content-Type",
-		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s_master_report_%d.xlsx", societyRera, time.Now().Unix()))
+	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	w.Header().Set(
+		"Content-Disposition",
+		fmt.Sprintf("attachment; filename=%s_master_report_%d.xlsx", fileNameBase, time.Now().Unix()),
+	)
 	w.Header().Set("Content-Length", fmt.Sprint(report.Len()))
 
 	// Write to response
