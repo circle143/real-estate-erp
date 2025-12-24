@@ -48,6 +48,7 @@ type Header struct {
 	Heading string
 	Items   []Header
 	Color   string
+	IsMonetary bool
 }
 
 func (f Flat) GetCreatedAt() time.Time {
