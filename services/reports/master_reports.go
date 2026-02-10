@@ -303,37 +303,37 @@ func newMasterReportSheetManual(file *excelize.File, tower models.Tower) error {
 		}...,
 	)
 
-	// get unique payment plans
-	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
-	for _, flat := range tower.Flats {
-		if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
-			ratioKey := flat.SaleDetail.PaymentPlanRatioId
-			ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
+	// // get unique payment plans
+	// paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
+	// for _, flat := range tower.Flats {
+	// 	if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
+	// 		ratioKey := flat.SaleDetail.PaymentPlanRatioId
+	// 		ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
 
-			for _, ratioItem := range flat.SaleDetail.PaymentPlanRatio.Ratios {
-				ratioItems = append(ratioItems, paymentPlanItemInfo{
-					ID:          ratioItem.Id,
-					Description: ratioItem.Description,
-				})
-			}
+	// 		for _, ratioItem := range flat.SaleDetail.PaymentPlanRatio.Ratios {
+	// 			ratioItems = append(ratioItems, paymentPlanItemInfo{
+	// 				ID:          ratioItem.Id,
+	// 				Description: ratioItem.Description,
+	// 			})
+	// 		}
 
-			paymentPlanDetails[ratioKey] = paymentPlanInfo{
-				ID:    ratioKey,
-				Name:  flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name,
-				Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
-				Items: ratioItems,
-			}
-		}
-	}
+	// 		paymentPlanDetails[ratioKey] = paymentPlanInfo{
+	// 			ID:    ratioKey,
+	// 			Name:  flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name,
+	// 			Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
+	// 			Items: ratioItems,
+	// 		}
+	// 	}
+	// }
 
-	// add payment plan headers (these have monetary sub-items defined in getItems())
-	for _, item := range paymentPlanDetails {
-		baseHeaders = append(baseHeaders, models.Header{
-			ID:      &item.ID,
-			Heading: item.getHeading(),
-			Items:   item.getItems(),
-		})
-	}
+	// // add payment plan headers (these have monetary sub-items defined in getItems())
+	// for _, item := range paymentPlanDetails {
+	// 	baseHeaders = append(baseHeaders, models.Header{
+	// 		ID:      &item.ID,
+	// 		Heading: item.getHeading(),
+	// 		Items:   item.getItems(),
+	// 	})
+	// }
 
 	// get max valid installment number
 	installmentCount := 0
@@ -709,36 +709,36 @@ func newMasterReportSheetAllTowers(file *excelize.File, towers []models.Tower) e
 		}...,
 	)
 
-	// get unique payment plans from ALL towers
-	paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
-	for _, flat := range allFlats {
-		if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
-			ratioKey := flat.SaleDetail.PaymentPlanRatioId
-			ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
+	// // get unique payment plans from ALL towers
+	// paymentPlanDetails := make(map[uuid.UUID]paymentPlanInfo)
+	// for _, flat := range allFlats {
+	// 	if flat.SaleDetail != nil && flat.SaleDetail.PaymentPlanRatio != nil {
+	// 		ratioKey := flat.SaleDetail.PaymentPlanRatioId
+	// 		ratioItems := make([]paymentPlanItemInfo, 0, len(flat.SaleDetail.PaymentPlanRatio.Ratios))
 
-			for _, ratioItem := range flat.SaleDetail.PaymentPlanRatio.Ratios {
-				ratioItems = append(ratioItems, paymentPlanItemInfo{
-					ID:          ratioItem.Id,
-					Description: ratioItem.Description,
-				})
-			}
+	// 		for _, ratioItem := range flat.SaleDetail.PaymentPlanRatio.Ratios {
+	// 			ratioItems = append(ratioItems, paymentPlanItemInfo{
+	// 				ID:          ratioItem.Id,
+	// 				Description: ratioItem.Description,
+	// 			})
+	// 		}
 
-			paymentPlanDetails[ratioKey] = paymentPlanInfo{
-				ID:    ratioKey,
-				Name:  flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name,
-				Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
-				Items: ratioItems,
-			}
-		}
-	}
+	// 		paymentPlanDetails[ratioKey] = paymentPlanInfo{
+	// 			ID:    ratioKey,
+	// 			Name:  flat.SaleDetail.PaymentPlanRatio.PaymentPlanGroup.Name,
+	// 			Ratio: flat.SaleDetail.PaymentPlanRatio.Ratio,
+	// 			Items: ratioItems,
+	// 		}
+	// 	}
+	// }
 
-	for _, item := range paymentPlanDetails {
-		baseHeaders = append(baseHeaders, models.Header{
-			ID:      &item.ID,
-			Heading: item.getHeading(),
-			Items:   item.getItems(),
-		})
-	}
+	// for _, item := range paymentPlanDetails {
+	// 	baseHeaders = append(baseHeaders, models.Header{
+	// 		ID:      &item.ID,
+	// 		Heading: item.getHeading(),
+	// 		Items:   item.getItems(),
+	// 	})
+	// }
 
 	// get max valid installment number from ALL towers
 	installmentCount := 0

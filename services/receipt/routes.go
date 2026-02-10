@@ -25,3 +25,7 @@ func (s *receiptService) GetRoutes() *chi.Mux {
 
 	return mux
 }
+
+
+
+     
