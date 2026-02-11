@@ -21,6 +21,7 @@ func (s *receiptService) GetRoutes() *chi.Mux {
 		router.Post("/{receiptId}/clear", s.clearSaleReceipt)
 		router.Get("/{receiptId}", s.getReceiptById)
 		router.Patch("/{receiptId}/fail", s.markReceiptAsFailed)
+		router.Patch("/{receiptId}", s.updateSaleReceipt)
 	})
 
 	return mux
